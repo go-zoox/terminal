@@ -2,9 +2,11 @@ package client
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -90,7 +92,12 @@ func (c *client) Connect() error {
 	logger.Debugf("connecting to %s", u.String())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	conn, response, err := websocket.DefaultDialer.DialContext(ctx, u.String(), nil)
+	headers := http.Header{}
+	if c.cfg.Username != "" && c.cfg.Password != "" {
+		headers.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(c.cfg.Username+":"+c.cfg.Password))))
+	}
+
+	conn, response, err := websocket.DefaultDialer.DialContext(ctx, u.String(), headers)
 	if err != nil {
 		if response == nil || response.Body == nil {
 			cancel()
