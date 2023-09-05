@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/go-zoox/cli"
 	"github.com/go-zoox/terminal"
-	"github.com/go-zoox/terminal/cmd/commands"
+	"github.com/go-zoox/terminal/cmd/terminal/commands"
 )
 
 func main() {

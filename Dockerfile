@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 \
   go build \
   -trimpath \
   -ldflags '-w -s -buildid=' \
-  -v -o terminal ./cmd
+  -v -o terminal ./cmd/terminal
 
 # Server
 FROM whatwewant/alpine:v3.17-1
