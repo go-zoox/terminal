@@ -58,9 +58,9 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 				if data.Container == "" {
 					data.Container = cfg.Container
 				}
-				// if data.Shell == "" {
-				// 	data.Shell = cfg.Shell
-				// }
+				if data.Shell == "" {
+					data.Shell = cfg.Shell
+				}
 				if data.InitCommand == "" {
 					data.InitCommand = cfg.InitCommand
 				}
