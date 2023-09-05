@@ -44,6 +44,12 @@ func RegistryServer(app *cli.MultipleProgram) {
 				EnvVars: []string{"GO_ZOOX_TERMINAL_CONTAINER"},
 				Value:   "host",
 			},
+			&cli.StringFlag{
+				Name:    "container-image",
+				Usage:   "Container image for container runtime, default: whatwewant/zmicro:v1",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_CONTAINER_IMAGE"},
+				Value:   "whatwewant/zmicro:v1",
+			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
 			s := server.NewHTTPServer(&server.HTTPServerConfig{

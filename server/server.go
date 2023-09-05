@@ -18,6 +18,7 @@ type Config struct {
 	Password string
 	// Container is the Container runtime, options: host, docker, kubernetes, ssh, default: host
 	Container string
+	Image     string
 	//
 	InitCommand string
 }
@@ -37,6 +38,14 @@ func (s *server) Serve() zoox.WsHandlerFunc {
 }
 
 func Serve(cfg *Config) zoox.WsHandlerFunc {
+	if cfg == nil {
+		panic("terminal serve config is nil")
+	}
+
+	if cfg.Image == "" {
+		cfg.Image = "whatwewant/zmicro:v1"
+	}
+
 	return func(ctx *zoox.Context, client *websocket.Client) {
 		var session session.Session
 		client.OnDisconnect = func() {
@@ -64,9 +73,9 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 				if data.InitCommand == "" {
 					data.InitCommand = cfg.InitCommand
 				}
-				// if data.Image == "" {
-				// 	data.Image = cfg.Image
-				// }
+				if data.Image == "" {
+					data.Image = cfg.Image
+				}
 
 				if session, err = connect(ctx, client, &ConnectConfig{
 					Container:   data.Container,
@@ -77,6 +86,7 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					Image:       data.Image,
 				}); err != nil {
 					logger.Errorf("failed to connect: %s", err)
+					client.Close()
 					return
 				}
 
