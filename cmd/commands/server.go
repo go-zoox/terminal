@@ -46,7 +46,7 @@ func RegistryServer(app *cli.MultipleProgram) {
 			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
-			s := server.New(&server.Config{
+			s := server.NewHTTPServer(&server.HTTPServerConfig{
 				Port:     ctx.Int64("port"),
 				Shell:    ctx.String("shell"),
 				Username: ctx.String("username"),
