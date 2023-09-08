@@ -6,4 +6,7 @@ type Config struct {
 	WorkDir     string
 
 	InitCommand string
+
+	//
+	DisableHistory bool
 }
