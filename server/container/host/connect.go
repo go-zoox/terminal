@@ -17,8 +17,12 @@ func (h *host) Connect(ctx context.Context) (session session.Session, err error)
 	}
 
 	cmd := exec.Command(h.cfg.Shell, args...)
-	cmd.Env = append(os.Environ(), "TERM=xterm", "HISTFILE=/dev/null")
+	cmd.Env = append(os.Environ(), "TERM=xterm")
 	cmd.Dir = h.cfg.WorkDir
+
+	if h.cfg.DisableHistory {
+		cmd.Env = append(cmd.Env, "HISTFILE=/dev/null")
+	}
 
 	for k, v := range h.cfg.Environment {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))

@@ -52,7 +52,7 @@ func RenderXTerm(data zoox.H) string {
 				var config = %s;
 
 				var url = new URL(window.location.href);
-				var query = new URLSearchParams(location.search);
+				var query = new URLSearchParams(window.location.search);
 				var protocol = url.protocol === 'https:' ? 'wss' : 'ws';
 
 				if (query.get('title') && document.querySelector('title')) {
@@ -66,7 +66,7 @@ func RenderXTerm(data zoox.H) string {
 				var fitAddon = new FitAddon.FitAddon();
 				term.loadAddon(fitAddon);
 
-				var ws = new WebSocket(protocol + '://' + url.host + config.wsPath);
+				var ws = new WebSocket(protocol + '://' + url.host + config.wsPath + window.location.search);
 				ws.binaryType = 'arraybuffer';
 				ws.onclose = () => {
 					term.write('\r\n\x1b[31mConnection Closed.\x1b[m\r\n');
