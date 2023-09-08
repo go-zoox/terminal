@@ -77,14 +77,19 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					data.Image = cfg.Image
 				}
 
-				if session, err = connect(ctx, client, &ConnectConfig{
+				connectCfg := &ConnectConfig{
 					Container:   data.Container,
 					Shell:       data.Shell,
 					Environment: data.Environment,
 					WorkDir:     data.WorkDir,
 					InitCommand: data.InitCommand,
 					Image:       data.Image,
-				}); err != nil {
+				}
+				if connectCfg.InitCommand == "" && ctx.Query().Get("init_command").String() != "" {
+					connectCfg.InitCommand = ctx.Query().Get("init_command").String()
+				}
+
+				if session, err = connect(ctx, client, connectCfg); err != nil {
 					logger.Errorf("failed to connect: %s", err)
 					client.Close()
 					return
