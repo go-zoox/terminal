@@ -6,7 +6,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/docker/docker v24.0.4+incompatible
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
-	github.com/go-zoox/cli v1.3.2
+	github.com/go-zoox/cli v1.3.6
 	github.com/go-zoox/logger v1.4.5
 	github.com/go-zoox/uuid v0.0.1
 	github.com/go-zoox/zoox v1.12.6
