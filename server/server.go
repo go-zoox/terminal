@@ -21,6 +21,8 @@ type Config struct {
 	Image     string
 	//
 	InitCommand string
+	//
+	IsHistoryDisabled bool
 }
 
 type server struct {
@@ -78,12 +80,13 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 				}
 
 				connectCfg := &ConnectConfig{
-					Container:   data.Container,
-					Shell:       data.Shell,
-					Environment: data.Environment,
-					WorkDir:     data.WorkDir,
-					InitCommand: data.InitCommand,
-					Image:       data.Image,
+					Container:         data.Container,
+					Shell:             data.Shell,
+					Environment:       data.Environment,
+					WorkDir:           data.WorkDir,
+					InitCommand:       data.InitCommand,
+					Image:             data.Image,
+					IsHistoryDisabled: cfg.IsHistoryDisabled,
 				}
 				if connectCfg.InitCommand == "" && ctx.Query().Get("init_command").String() != "" {
 					connectCfg.InitCommand = ctx.Query().Get("init_command").String()

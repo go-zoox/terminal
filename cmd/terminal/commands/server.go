@@ -50,6 +50,12 @@ func RegistryServer(app *cli.MultipleProgram) {
 				EnvVars: []string{"GO_ZOOX_TERMINAL_CONTAINER_IMAGE"},
 				Value:   "whatwewant/zmicro:v1",
 			},
+			&cli.BoolFlag{
+				Name:    "disable-history",
+				Usage:   "Disable history",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_DISABLE_HISTORY"},
+				Value:   false,
+			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
 			s := server.NewHTTPServer(&server.HTTPServerConfig{
@@ -61,6 +67,8 @@ func RegistryServer(app *cli.MultipleProgram) {
 				Container: ctx.String("container"),
 				//
 				InitCommand: ctx.String("init-command"),
+				//
+				IsHistoryDisabled: ctx.Bool("disable-history"),
 			})
 
 			return s.Run()

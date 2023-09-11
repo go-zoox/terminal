@@ -20,7 +20,7 @@ func (h *host) Connect(ctx context.Context) (session session.Session, err error)
 	cmd.Env = append(os.Environ(), "TERM=xterm")
 	cmd.Dir = h.cfg.WorkDir
 
-	if h.cfg.DisableHistory {
+	if h.cfg.IsHistoryDisabled {
 		cmd.Env = append(cmd.Env, "HISTFILE=/dev/null")
 	}
 

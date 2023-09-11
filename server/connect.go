@@ -22,6 +22,8 @@ type ConnectConfig struct {
 	InitCommand string
 	//
 	Image string
+	//
+	IsHistoryDisabled bool
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session session.Session, err error) {
@@ -31,10 +33,11 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 
 	if cfg.Container == "host" {
 		if session, err = host.New(&host.Config{
-			Shell:       cfg.Shell,
-			Environment: cfg.Environment,
-			WorkDir:     cfg.WorkDir,
-			InitCommand: cfg.InitCommand,
+			Shell:             cfg.Shell,
+			Environment:       cfg.Environment,
+			WorkDir:           cfg.WorkDir,
+			InitCommand:       cfg.InitCommand,
+			IsHistoryDisabled: cfg.IsHistoryDisabled,
 		}).Connect(ctx.Context()); err != nil {
 			ctx.Logger.Errorf("[websocket] failed to connect host: %s", err)
 			client.Disconnect()

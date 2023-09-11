@@ -22,6 +22,8 @@ type HTTPServerConfig struct {
 	Path string
 	//
 	InitCommand string
+	//
+	IsHistoryDisabled bool
 }
 
 type httpServer struct {
@@ -66,11 +68,12 @@ func (s *httpServer) Run() error {
 	}
 
 	app.WebSocket(cfg.Path, Serve(&Config{
-		Shell:       cfg.Shell,
-		Container:   cfg.Container,
-		InitCommand: cfg.InitCommand,
-		Username:    cfg.Username,
-		Password:    cfg.Password,
+		Shell:             cfg.Shell,
+		Container:         cfg.Container,
+		InitCommand:       cfg.InitCommand,
+		Username:          cfg.Username,
+		Password:          cfg.Password,
+		IsHistoryDisabled: cfg.IsHistoryDisabled,
 	}))
 
 	app.Get("/", func(ctx *zoox.Context) {

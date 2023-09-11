@@ -8,5 +8,5 @@ type Config struct {
 	InitCommand string
 
 	//
-	DisableHistory bool
+	IsHistoryDisabled bool
 }
