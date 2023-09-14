@@ -23,6 +23,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 				Name:     "server",
 				Usage:    "server url",
 				Aliases:  []string{"s"},
+				EnvVars:  []string{"SERVER"},
 				Required: true,
 			},
 			&cli.StringFlag{
