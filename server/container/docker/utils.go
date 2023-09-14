@@ -48,6 +48,16 @@ func (rct *ResizableContainerTerminal) Write(p []byte) (n int, err error) {
 }
 
 func (rct *ResizableContainerTerminal) Resize(rows, cols int) error {
+	inspect, err := rct.Client.ContainerInspect(rct.Ctx, rct.ContainerID)
+	if err != nil {
+		return err
+	}
+
+	if inspect.State.Status != "running" {
+		// return fmt.Errorf("container is not running")
+		return nil
+	}
+
 	return rct.Client.ContainerResize(rct.Ctx, rct.ContainerID, types.ResizeOptions{
 		Height: uint(rows),
 		Width:  uint(cols),

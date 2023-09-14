@@ -5,6 +5,9 @@ type Config struct {
 	Environment map[string]string
 	WorkDir     string
 
+	//
+	User string
+
 	InitCommand string
 
 	//

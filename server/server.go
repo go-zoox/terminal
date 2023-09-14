@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
 	"github.com/go-zoox/terminal/server/session"
@@ -78,12 +80,16 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 				if data.Image == "" {
 					data.Image = cfg.Image
 				}
+				// if data.User == "" {
+				// 	data.User = cfg.User
+				// }
 
 				connectCfg := &ConnectConfig{
 					Container:         data.Container,
 					Shell:             data.Shell,
 					Environment:       data.Environment,
 					WorkDir:           data.WorkDir,
+					User:              data.User,
 					InitCommand:       data.InitCommand,
 					Image:             data.Image,
 					IsHistoryDisabled: cfg.IsHistoryDisabled,
@@ -94,6 +100,20 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 
 				if session, err = connect(ctx, client, connectCfg); err != nil {
 					logger.Errorf("failed to connect: %s", err)
+
+					msg := &message.Message{}
+					msg.SetType(message.TypeExit)
+					msg.SetExit(&message.Exit{
+						Code:    1,
+						Message: fmt.Sprintf("failed to connect: %s", err.Error()),
+					})
+					if err := msg.Serialize(); err != nil {
+						logger.Errorf("failed to serialize message: %s", err)
+						return
+					}
+
+					client.Write(websocket.BinaryMessage, msg.Msg())
+
 					client.Close()
 					return
 				}

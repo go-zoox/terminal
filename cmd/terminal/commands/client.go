@@ -53,6 +53,12 @@ func RegistryClient(app *cli.MultipleProgram) {
 				Aliases: []string{"w"},
 				EnvVars: []string{"WORKDIR"},
 			},
+			&cli.StringFlag{
+				Name:    "user",
+				Usage:   "specify terminal user",
+				Aliases: []string{"u"},
+				// EnvVars: []string{"USER"},
+			},
 			&cli.StringSliceFlag{
 				Name:    "env",
 				Usage:   "specify terminal env",
@@ -126,6 +132,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 				//
 				Command:     command,
 				Environment: env,
+				User:        ctx.String("user"),
 				//
 				Image: ctx.String("image"),
 				//
@@ -133,14 +140,11 @@ func RegistryClient(app *cli.MultipleProgram) {
 				Password: ctx.String("password"),
 			})
 
-			if err := c.Connect(); err != nil {
-				return err
-			}
 			go func() {
 				err := <-c.OnClose()
 				if err != nil {
 					if e, ok := err.(*client.ExitError); ok {
-						// os.Stdout.Write([]byte(e.Message + "\n"))
+						os.Stdout.Write([]byte(e.Message + "\n"))
 						os.Exit(e.Code)
 						return
 					}
@@ -152,6 +156,10 @@ func RegistryClient(app *cli.MultipleProgram) {
 					os.Exit(0)
 				}
 			}()
+
+			if err := c.Connect(); err != nil {
+				return err
+			}
 
 			// resize
 			if err := c.Resize(); err != nil {
@@ -254,7 +262,6 @@ func RegistryClient(app *cli.MultipleProgram) {
 						fmt.Fprintln(os.Stderr, err)
 					}
 				}
-
 			}
 
 			return

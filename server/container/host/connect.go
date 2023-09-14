@@ -28,6 +28,12 @@ func (h *host) Connect(ctx context.Context) (session session.Session, err error)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	if h.cfg.User != "" {
+		if err := setCmdUser(cmd, h.cfg.User); err != nil {
+			return nil, err
+		}
+	}
+
 	terminal, err := pty.Start(cmd)
 	if err != nil {
 		return nil, err

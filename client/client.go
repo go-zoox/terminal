@@ -33,6 +33,7 @@ type Config struct {
 	Environment map[string]string
 	WorkDir     string
 	Command     string
+	User        string
 	//
 	Container string
 	Image     string
@@ -197,6 +198,7 @@ func (c *client) connect() error {
 		Shell:       c.cfg.Shell,
 		Environment: c.cfg.Environment,
 		WorkDir:     c.cfg.WorkDir,
+		User:        c.cfg.User,
 		InitCommand: c.cfg.Command,
 		//
 		Image: c.cfg.Image,

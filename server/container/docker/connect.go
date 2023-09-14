@@ -30,6 +30,7 @@ func (d *docker) Connect(ctx context.Context) (session session.Session, err erro
 	cfg := &container.Config{
 		Image:        d.cfg.Image,
 		Cmd:          append([]string{d.cfg.Shell}, args...),
+		User:         d.cfg.User,
 		Tty:          true,
 		OpenStdin:    true,
 		AttachStdin:  true,

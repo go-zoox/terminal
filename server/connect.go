@@ -19,6 +19,7 @@ type ConnectConfig struct {
 	Shell       string
 	Environment map[string]string
 	WorkDir     string
+	User        string
 	InitCommand string
 	//
 	Image string
@@ -36,11 +37,12 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 			Shell:             cfg.Shell,
 			Environment:       cfg.Environment,
 			WorkDir:           cfg.WorkDir,
+			User:              cfg.User,
 			InitCommand:       cfg.InitCommand,
 			IsHistoryDisabled: cfg.IsHistoryDisabled,
 		}).Connect(ctx.Context()); err != nil {
 			ctx.Logger.Errorf("[websocket] failed to connect host: %s", err)
-			client.Disconnect()
+			// client.Disconnect()
 			return
 		}
 	} else if cfg.Container == "docker" {
@@ -48,12 +50,13 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 			Shell:       cfg.Shell,
 			Environment: cfg.Environment,
 			WorkDir:     cfg.WorkDir,
+			User:        cfg.User,
 			InitCommand: cfg.InitCommand,
 			//
 			Image: cfg.Image,
 		}).Connect(ctx.Context()); err != nil {
 			ctx.Logger.Errorf("[websocket] failed to connect container: %s", err)
-			client.Disconnect()
+			// client.Disconnect()
 			return
 		}
 	} else {

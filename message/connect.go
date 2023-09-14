@@ -6,6 +6,7 @@ type Connect struct {
 	Shell       string            `json:"shell"`
 	Environment map[string]string `json:"environment"`
 	WorkDir     string            `json:"workdir"`
+	User        string            `json:"user"`
 	InitCommand string            `json:"init_command"`
 	//
 	Image string `json:"image"`
