@@ -7,15 +7,15 @@ import (
 
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
-	"github.com/go-zoox/terminal/server/container/docker"
-	"github.com/go-zoox/terminal/server/container/host"
+	"github.com/go-zoox/terminal/server/driver/docker"
+	"github.com/go-zoox/terminal/server/driver/host"
 	"github.com/go-zoox/terminal/server/session"
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/components/application/websocket"
 )
 
 type ConnectConfig struct {
-	Container   string
+	Driver      string
 	Shell       string
 	Environment map[string]string
 	WorkDir     string
@@ -28,11 +28,11 @@ type ConnectConfig struct {
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session session.Session, err error) {
-	if cfg.Container == "" {
-		cfg.Container = "host"
+	if cfg.Driver == "" {
+		cfg.Driver = "host"
 	}
 
-	if cfg.Container == "host" {
+	if cfg.Driver == "host" {
 		if session, err = host.New(&host.Config{
 			Shell:             cfg.Shell,
 			Environment:       cfg.Environment,
@@ -45,7 +45,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 			// client.Disconnect()
 			return
 		}
-	} else if cfg.Container == "docker" {
+	} else if cfg.Driver == "docker" {
 		if session, err = docker.New(&docker.Config{
 			Shell:       cfg.Shell,
 			Environment: cfg.Environment,
@@ -55,12 +55,12 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 			//
 			Image: cfg.Image,
 		}).Connect(ctx.Context()); err != nil {
-			ctx.Logger.Errorf("[websocket] failed to connect container: %s", err)
+			ctx.Logger.Errorf("[websocket] failed to connect docker: %s", err)
 			// client.Disconnect()
 			return
 		}
 	} else {
-		panic(fmt.Errorf("unknown mode: %s", cfg.Container))
+		panic(fmt.Errorf("unknown mode: %s", cfg.Driver))
 	}
 
 	go func() {

@@ -16,8 +16,9 @@ type HTTPServerConfig struct {
 	Shell    string
 	Username string
 	Password string
-	// Container is the Container runtime, options: host, docker, kubernetes, ssh, default: host
-	Container string
+	// Driver is the Driver runtime, options: host, docker, kubernetes, ssh, default: host
+	Driver      string
+	DriverImage string
 	//
 	Path string
 	//
@@ -31,8 +32,8 @@ type httpServer struct {
 }
 
 func NewHTTPServer(cfg *HTTPServerConfig) HTTPServer {
-	if cfg.Container == "" {
-		cfg.Container = "host"
+	if cfg.Driver == "" {
+		cfg.Driver = "host"
 	}
 
 	if cfg.Path == "" {
@@ -69,7 +70,8 @@ func (s *httpServer) Run() error {
 
 	app.WebSocket(cfg.Path, Serve(&Config{
 		Shell:             cfg.Shell,
-		Container:         cfg.Container,
+		Driver:            cfg.Driver,
+		DriverImage:       cfg.DriverImage,
 		InitCommand:       cfg.InitCommand,
 		Username:          cfg.Username,
 		Password:          cfg.Password,

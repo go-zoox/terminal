@@ -1,7 +1,7 @@
 package message
 
 type Connect struct {
-	Container string `json:"container"`
+	Driver string `json:"container"`
 	//
 	Shell       string            `json:"shell"`
 	Environment map[string]string `json:"environment"`

@@ -1,11 +1,11 @@
 package docker
 
 import (
-	"github.com/go-zoox/terminal/server/container"
+	"github.com/go-zoox/terminal/server/driver"
 )
 
 type Docker interface {
-	container.Container
+	driver.Driver
 }
 
 type docker struct {

@@ -1,9 +1,9 @@
 package host
 
-import "github.com/go-zoox/terminal/server/container"
+import "github.com/go-zoox/terminal/server/driver"
 
 type Host interface {
-	container.Container
+	driver.Driver
 }
 
 type host struct {

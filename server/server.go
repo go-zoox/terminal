@@ -18,9 +18,9 @@ type Config struct {
 	Shell    string
 	Username string
 	Password string
-	// Container is the Container runtime, options: host, docker, kubernetes, ssh, default: host
-	Container string
-	Image     string
+	// Driver is the Driver runtime, options: host, docker, kubernetes, ssh, default: host
+	Driver      string
+	DriverImage string
 	//
 	InitCommand string
 	//
@@ -46,8 +46,8 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 		panic("terminal serve config is nil")
 	}
 
-	if cfg.Image == "" {
-		cfg.Image = "whatwewant/zmicro:v1"
+	if cfg.DriverImage == "" {
+		cfg.DriverImage = "whatwewant/zmicro:v1"
 	}
 
 	return func(ctx *zoox.Context, client *websocket.Client) {
@@ -68,8 +68,8 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 			switch msg.Type() {
 			case message.TypeConnect:
 				data := msg.Connect()
-				if data.Container == "" {
-					data.Container = cfg.Container
+				if data.Driver == "" {
+					data.Driver = cfg.Driver
 				}
 				if data.Shell == "" {
 					data.Shell = cfg.Shell
@@ -78,14 +78,14 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					data.InitCommand = cfg.InitCommand
 				}
 				if data.Image == "" {
-					data.Image = cfg.Image
+					data.Image = cfg.DriverImage
 				}
 				// if data.User == "" {
 				// 	data.User = cfg.User
 				// }
 
 				connectCfg := &ConnectConfig{
-					Container:         data.Container,
+					Driver:            data.Driver,
 					Shell:             data.Shell,
 					Environment:       data.Environment,
 					WorkDir:           data.WorkDir,

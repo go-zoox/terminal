@@ -1,4 +1,4 @@
-package container
+package driver
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/go-zoox/terminal/server/session"
 )
 
-type Container interface {
+type Driver interface {
 	Connect(ctx context.Context) (s session.Session, err error)
 }
 

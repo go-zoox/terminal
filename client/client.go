@@ -193,7 +193,7 @@ func (c *client) connect() error {
 	msg := &message.Message{}
 	msg.SetType(message.TypeConnect)
 	msg.SetConnect(&message.Connect{
-		Container: c.cfg.Container,
+		Driver: c.cfg.Container,
 		//
 		Shell:       c.cfg.Shell,
 		Environment: c.cfg.Environment,

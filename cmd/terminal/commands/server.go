@@ -39,15 +39,15 @@ func RegistryServer(app *cli.MultipleProgram) {
 				EnvVars: []string{"GO_ZOOX_TERMINAL_PASSWORD"},
 			},
 			&cli.StringFlag{
-				Name:    "container",
-				Usage:   "Container runtime, options: host, docker, kubernetes, ssh, default: host",
-				EnvVars: []string{"GO_ZOOX_TERMINAL_CONTAINER"},
+				Name:    "driver",
+				Usage:   "Driver runtime, options: host, docker, kubernetes, ssh, default: host",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_DRIVER"},
 				Value:   "host",
 			},
 			&cli.StringFlag{
-				Name:    "container-image",
-				Usage:   "Container image for container runtime, default: whatwewant/zmicro:v1",
-				EnvVars: []string{"GO_ZOOX_TERMINAL_CONTAINER_IMAGE"},
+				Name:    "driver-image",
+				Usage:   "Driver image for driver runtime, default: whatwewant/zmicro:v1",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_DRIVER_IMAGE"},
 				Value:   "whatwewant/zmicro:v1",
 			},
 			&cli.BoolFlag{
@@ -64,7 +64,8 @@ func RegistryServer(app *cli.MultipleProgram) {
 				Username: ctx.String("username"),
 				Password: ctx.String("password"),
 				//
-				Container: ctx.String("container"),
+				Driver:      ctx.String("container"),
+				DriverImage: ctx.String("driver-image"),
 				//
 				InitCommand: ctx.String("init-command"),
 				//
