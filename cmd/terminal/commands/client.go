@@ -195,7 +195,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 				}
 
 				// fmt.Printf("You pressed: rune:%q, key %X\r\n", char, key)
-				if key == keyboard.KeyCtrlC {
+				if key == keyboard.KeyCtrlD {
 					break
 				}
 				if err != nil {
