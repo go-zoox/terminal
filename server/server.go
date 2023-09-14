@@ -106,7 +106,7 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					return
 				}
 
-				client.WriteMessage(websocket.BinaryMessage, msg.Msg())
+				client.Write(websocket.BinaryMessage, msg.Msg())
 			case message.TypeKey:
 				if session == nil {
 					ctx.Logger.Errorf("session is not ready")

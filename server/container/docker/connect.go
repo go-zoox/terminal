@@ -27,7 +27,7 @@ func (d *docker) Connect(ctx context.Context) (session session.Session, err erro
 		return nil, err
 	}
 
-	res, err := c.ContainerCreate(ctx, &container.Config{
+	cfg := &container.Config{
 		Image:        d.cfg.Image,
 		Cmd:          append([]string{d.cfg.Shell}, args...),
 		Tty:          true,
@@ -38,7 +38,11 @@ func (d *docker) Connect(ctx context.Context) (session session.Session, err erro
 		StdinOnce:    true,
 		WorkingDir:   d.cfg.WorkDir,
 		Env:          env,
-	}, nil, nil, nil, uuid.V4())
+	}
+
+	hostCfg := &container.HostConfig{}
+
+	res, err := c.ContainerCreate(ctx, cfg, hostCfg, nil, nil, uuid.V4())
 	if err != nil {
 		return nil, err
 	}

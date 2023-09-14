@@ -63,8 +63,8 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 	go func() {
 		if err := session.Wait(); err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				logger.Errorf("exit status: %d", exitErr.ExitCode())
-				// client.WriteMessage(websocket.BinaryMessage, []byte(exitErr.Error()))
+				logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
+				// client.Write(websocket.BinaryMessage, []byte(exitErr.Error()))
 
 				msg := &message.Message{}
 				msg.SetType(message.TypeExit)
@@ -77,7 +77,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 					return
 				}
 
-				client.WriteMessage(websocket.BinaryMessage, msg.Msg())
+				client.Write(websocket.BinaryMessage, msg.Msg())
 			} else {
 				logger.Errorf("failed to wait session: %s", err)
 			}
@@ -92,7 +92,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 			n, err := session.Read(buf)
 			if err != nil && err != io.EOF {
 				logger.Errorf("failed to read from session: %s", err)
-				client.WriteMessage(websocket.BinaryMessage, []byte(err.Error()))
+				client.Write(websocket.BinaryMessage, []byte(err.Error()))
 				return
 			}
 
@@ -104,7 +104,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 				return
 			}
 
-			client.WriteMessage(websocket.BinaryMessage, msg.Msg())
+			client.Write(websocket.BinaryMessage, msg.Msg())
 
 			if err == io.EOF {
 				return
