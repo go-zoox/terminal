@@ -64,7 +64,7 @@ func RegistryServer(app *cli.MultipleProgram) {
 				Username: ctx.String("username"),
 				Password: ctx.String("password"),
 				//
-				Driver:      ctx.String("container"),
+				Driver:      ctx.String("driver"),
 				DriverImage: ctx.String("driver-image"),
 				//
 				InitCommand: ctx.String("init-command"),
