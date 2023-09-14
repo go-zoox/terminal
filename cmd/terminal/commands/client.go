@@ -10,6 +10,7 @@ import (
 
 	"github.com/eiannone/keyboard"
 	"github.com/go-zoox/cli"
+	"github.com/go-zoox/fs"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/client"
 )
@@ -63,6 +64,17 @@ func RegistryClient(app *cli.MultipleProgram) {
 				Usage:   "specify image for container runtime",
 				EnvVars: []string{"IMAGE"},
 			},
+			//
+			&cli.StringFlag{
+				Name:    "scriptfile",
+				Usage:   "specify script file",
+				EnvVars: []string{"SCRIPTFILE"},
+			},
+			&cli.StringFlag{
+				Name:    "envfile",
+				Usage:   `specify env file, format: key=value`,
+				EnvVars: []string{"ENVFILE"},
+			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
 			env := map[string]string{}
@@ -75,13 +87,45 @@ func RegistryClient(app *cli.MultipleProgram) {
 				}
 			}
 
+			command := ctx.String("command")
+			if ctx.String("scriptfile") != "" {
+				command, err = fs.ReadFileAsString(ctx.String("scriptfile"))
+				if err != nil {
+					return err
+				}
+			}
+
+			if ctx.String("envfile") != "" {
+				envfile, err := fs.ReadFileAsString(ctx.String("envfile"))
+				if err != nil {
+					return err
+				}
+
+				for _, e := range strings.Split(envfile, "\n") {
+					if strings.TrimSpace(e) == "" {
+						continue
+					}
+					if strings.HasPrefix(e, "#") {
+						continue
+					}
+
+					kv := strings.SplitN(e, "=", 2)
+					if len(kv) >= 2 {
+						env[kv[0]] = strings.Join(kv[1:], "=")
+					} else if len(kv) == 1 {
+						env[kv[0]] = ""
+					}
+				}
+			}
+
 			c := client.New(&client.Config{
 				Server: ctx.String("server"),
 				//
-				Shell:       ctx.String("shell"),
+				Shell:   ctx.String("shell"),
+				WorkDir: ctx.String("workdir"),
+				//
+				Command:     command,
 				Environment: env,
-				WorkDir:     ctx.String("workdir"),
-				Command:     ctx.String("command"),
 				//
 				Image: ctx.String("image"),
 				//
