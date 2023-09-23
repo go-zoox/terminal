@@ -7,9 +7,11 @@ require (
 	github.com/docker/docker v24.0.4+incompatible
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/go-zoox/cli v1.3.6
+	github.com/go-zoox/core-utils v1.2.14
+	github.com/go-zoox/fs v1.3.13
 	github.com/go-zoox/logger v1.4.5
 	github.com/go-zoox/uuid v0.0.1
-	github.com/go-zoox/zoox v1.12.6
+	github.com/go-zoox/zoox v1.12.8
 	github.com/gorilla/websocket v1.5.0
 	golang.org/x/term v0.12.0
 )
@@ -31,17 +33,15 @@ require (
 	github.com/go-zoox/concurrency v1.2.0 // indirect
 	github.com/go-zoox/config v1.2.10 // indirect
 	github.com/go-zoox/cookie v1.2.0 // indirect
-	github.com/go-zoox/core-utils v1.2.14 // indirect
 	github.com/go-zoox/counter v1.2.0 // indirect
 	github.com/go-zoox/cron v1.1.2 // indirect
 	github.com/go-zoox/crypto v1.1.8 // indirect
 	github.com/go-zoox/datetime v1.2.2 // indirect
-	github.com/go-zoox/debug v1.0.1 // indirect
+	github.com/go-zoox/debug v1.0.2 // indirect
 	github.com/go-zoox/dotenv v1.2.3 // indirect
 	github.com/go-zoox/encoding v1.2.1 // indirect
 	github.com/go-zoox/errors v1.0.2 // indirect
 	github.com/go-zoox/fetch v1.7.16 // indirect
-	github.com/go-zoox/fs v1.3.13 // indirect
 	github.com/go-zoox/gzip v1.0.0 // indirect
 	github.com/go-zoox/headers v1.0.8 // indirect
 	github.com/go-zoox/i18n v1.0.3 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/go-zoox/jsonrpc v1.2.2 // indirect
 	github.com/go-zoox/jwt v1.3.0 // indirect
 	github.com/go-zoox/kv v1.5.2 // indirect
-	github.com/go-zoox/proxy v1.5.2 // indirect
+	github.com/go-zoox/proxy v1.5.3 // indirect
 	github.com/go-zoox/pubsub v1.2.2 // indirect
 	github.com/go-zoox/random v1.0.4 // indirect
 	github.com/go-zoox/ratelimit v1.2.0 // indirect
