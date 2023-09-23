@@ -26,12 +26,10 @@ LABEL org.opencontainers.image.source="https://github.com/go-zoox/terminal"
 
 ARG VERSION=latest
 
-ENV MODE=production
+ENV TERMINAL_VERSION=${VERSION}
 
 COPY --from=builder /build/terminal /bin
 
 RUN terminal --version
-
-ENV VERSION=${VERSION}
 
 CMD terminal server
