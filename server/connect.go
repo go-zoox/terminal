@@ -27,14 +27,14 @@ type ConnectConfig struct {
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
 	cmd, err := command.New(ctx.Context(), &command.Config{
-		Engine:      cfg.Driver,
-		Command:     cfg.InitCommand,
-		Environment: cfg.Environment,
-		WorkDir:     cfg.WorkDir,
-		User:        cfg.User,
-		Shell:       cfg.Shell,
-		Image:       cfg.Image,
-		// IsHistoryDisabled: cfg.IsHistoryDisabled,
+		Engine:            cfg.Driver,
+		Command:           cfg.InitCommand,
+		Environment:       cfg.Environment,
+		WorkDir:           cfg.WorkDir,
+		User:              cfg.User,
+		Shell:             cfg.Shell,
+		Image:             cfg.Image,
+		IsHistoryDisabled: cfg.IsHistoryDisabled,
 	})
 	if err != nil {
 		return nil, err
