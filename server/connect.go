@@ -26,7 +26,9 @@ type ConnectConfig struct {
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
-	cmd, err := command.New(ctx.Context(), &command.Config{
+	cmd, err := command.New(&command.Config{
+		Context: ctx.Context(),
+		//
 		Engine:            cfg.Driver,
 		Command:           cfg.InitCommand,
 		Environment:       cfg.Environment,
