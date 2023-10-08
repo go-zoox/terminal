@@ -1,15 +1,13 @@
 package server
 
 import (
-	"fmt"
 	"io"
 	"os/exec"
 
+	"github.com/go-zoox/command"
+	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
-	"github.com/go-zoox/terminal/server/driver/docker"
-	"github.com/go-zoox/terminal/server/driver/host"
-	"github.com/go-zoox/terminal/server/session"
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/components/application/websocket"
 )
@@ -27,41 +25,22 @@ type ConnectConfig struct {
 	IsHistoryDisabled bool
 }
 
-func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session session.Session, err error) {
-	if cfg.Driver == "" {
-		cfg.Driver = "host"
+func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
+	cmd, err := command.New(ctx.Context(), &command.Config{
+		Engine:      cfg.Driver,
+		Command:     cfg.InitCommand,
+		Environment: cfg.Environment,
+		WorkDir:     cfg.WorkDir,
+		User:        cfg.User,
+		Shell:       cfg.Shell,
+		Image:       cfg.Image,
+		// IsHistoryDisabled: cfg.IsHistoryDisabled,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	if cfg.Driver == "host" {
-		if session, err = host.New(&host.Config{
-			Shell:             cfg.Shell,
-			Environment:       cfg.Environment,
-			WorkDir:           cfg.WorkDir,
-			User:              cfg.User,
-			InitCommand:       cfg.InitCommand,
-			IsHistoryDisabled: cfg.IsHistoryDisabled,
-		}).Connect(ctx.Context()); err != nil {
-			ctx.Logger.Errorf("[websocket] failed to connect host: %s", err)
-			// client.Disconnect()
-			return
-		}
-	} else if cfg.Driver == "docker" {
-		if session, err = docker.New(&docker.Config{
-			Shell:       cfg.Shell,
-			Environment: cfg.Environment,
-			WorkDir:     cfg.WorkDir,
-			User:        cfg.User,
-			InitCommand: cfg.InitCommand,
-			//
-			Image: cfg.Image,
-		}).Connect(ctx.Context()); err != nil {
-			ctx.Logger.Errorf("[websocket] failed to connect docker: %s", err)
-			// client.Disconnect()
-			return
-		}
-	} else {
-		panic(fmt.Errorf("unknown mode: %s", cfg.Driver))
-	}
+	session, err = cmd.Terminal()
 
 	go func() {
 		if err := session.Wait(); err != nil {
