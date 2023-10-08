@@ -8,7 +8,7 @@ require (
 	github.com/go-zoox/command v1.2.0
 	github.com/go-zoox/fs v1.3.13
 	github.com/go-zoox/logger v1.4.6
-	github.com/go-zoox/zoox v1.12.8
+	github.com/go-zoox/zoox v1.12.18
 	github.com/gorilla/websocket v1.5.0
 	golang.org/x/term v0.12.0
 )
@@ -27,15 +27,16 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/go-zoox/cache v1.0.4 // indirect
+	github.com/go-zoox/cache v1.0.6 // indirect
 	github.com/go-zoox/chalk v1.0.2 // indirect
 	github.com/go-zoox/compress v1.0.1 // indirect
 	github.com/go-zoox/concurrency v1.2.0 // indirect
 	github.com/go-zoox/config v1.2.10 // indirect
 	github.com/go-zoox/cookie v1.2.0 // indirect
 	github.com/go-zoox/core-utils v1.2.14 // indirect
-	github.com/go-zoox/counter v1.2.0 // indirect
+	github.com/go-zoox/counter v1.2.1 // indirect
 	github.com/go-zoox/cron v1.1.2 // indirect
 	github.com/go-zoox/crypto v1.1.8 // indirect
 	github.com/go-zoox/datetime v1.2.2 // indirect
@@ -51,11 +52,11 @@ require (
 	github.com/go-zoox/jobqueue v1.0.0 // indirect
 	github.com/go-zoox/jsonrpc v1.2.2 // indirect
 	github.com/go-zoox/jwt v1.3.0 // indirect
-	github.com/go-zoox/kv v1.5.2 // indirect
-	github.com/go-zoox/proxy v1.5.3 // indirect
+	github.com/go-zoox/kv v1.5.9 // indirect
+	github.com/go-zoox/proxy v1.5.5 // indirect
 	github.com/go-zoox/pubsub v1.2.2 // indirect
 	github.com/go-zoox/random v1.0.4 // indirect
-	github.com/go-zoox/ratelimit v1.2.0 // indirect
+	github.com/go-zoox/ratelimit v1.2.1 // indirect
 	github.com/go-zoox/safe v1.0.1 // indirect
 	github.com/go-zoox/session v1.2.0 // indirect
 	github.com/go-zoox/tag v1.2.3 // indirect
