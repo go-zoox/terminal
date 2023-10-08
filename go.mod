@@ -3,15 +3,11 @@ module github.com/go-zoox/terminal
 go 1.20
 
 require (
-	github.com/creack/pty v1.1.18
-	github.com/docker/docker v24.0.6+incompatible
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/go-zoox/cli v1.3.6
 	github.com/go-zoox/command v1.2.0
-	github.com/go-zoox/core-utils v1.2.14
 	github.com/go-zoox/fs v1.3.13
 	github.com/go-zoox/logger v1.4.6
-	github.com/go-zoox/uuid v0.0.1
 	github.com/go-zoox/zoox v1.12.8
 	github.com/gorilla/websocket v1.5.0
 	golang.org/x/term v0.12.0
@@ -22,9 +18,11 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/creack/pty v1.1.18 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
+	github.com/docker/docker v24.0.6+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
@@ -36,6 +34,7 @@ require (
 	github.com/go-zoox/concurrency v1.2.0 // indirect
 	github.com/go-zoox/config v1.2.10 // indirect
 	github.com/go-zoox/cookie v1.2.0 // indirect
+	github.com/go-zoox/core-utils v1.2.14 // indirect
 	github.com/go-zoox/counter v1.2.0 // indirect
 	github.com/go-zoox/cron v1.1.2 // indirect
 	github.com/go-zoox/crypto v1.1.8 // indirect
@@ -60,6 +59,7 @@ require (
 	github.com/go-zoox/safe v1.0.1 // indirect
 	github.com/go-zoox/session v1.2.0 // indirect
 	github.com/go-zoox/tag v1.2.3 // indirect
+	github.com/go-zoox/uuid v0.0.1 // indirect
 	github.com/goccy/go-yaml v1.11.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.3.1 // indirect
