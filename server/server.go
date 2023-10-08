@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 
+	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
-	"github.com/go-zoox/terminal/server/session"
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/components/application/websocket"
 )
@@ -51,7 +51,7 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 	}
 
 	return func(ctx *zoox.Context, client *websocket.Client) {
-		var session session.Session
+		var session terminal.Terminal
 		client.OnDisconnect = func() {
 			if session != nil {
 				session.Close()
