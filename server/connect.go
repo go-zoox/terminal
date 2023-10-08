@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"io"
 
 	"github.com/go-zoox/command"
@@ -27,7 +26,7 @@ type ConnectConfig struct {
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
-	cmd, err := command.New(context.Background(), &command.Config{
+	cmd, err := command.New(ctx.Context(), &command.Config{
 		Engine:            cfg.Driver,
 		Command:           cfg.InitCommand,
 		Environment:       cfg.Environment,

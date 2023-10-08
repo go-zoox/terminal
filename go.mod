@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/go-zoox/cli v1.3.6
-	github.com/go-zoox/command v1.2.2
+	github.com/go-zoox/command v1.2.3
 	github.com/go-zoox/fs v1.3.13
 	github.com/go-zoox/logger v1.4.6
 	github.com/go-zoox/zoox v1.12.18
