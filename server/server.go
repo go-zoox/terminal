@@ -54,7 +54,9 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 		var session terminal.Terminal
 		client.OnDisconnect = func() {
 			if session != nil {
-				session.Close()
+				if err := session.Close(); err != nil {
+					logger.Errorf("Failed to close session: %s", err)
+				}
 			}
 		}
 

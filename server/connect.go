@@ -1,10 +1,11 @@
 package server
 
 import (
+	"context"
 	"io"
-	"os/exec"
 
 	"github.com/go-zoox/command"
+	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
@@ -44,7 +45,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 
 	go func() {
 		if err := session.Wait(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr, ok := err.(*errors.ExitError); ok {
 				logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
 				// client.Write(websocket.BinaryMessage, []byte(exitErr.Error()))
 
@@ -73,8 +74,8 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 		for {
 			n, err := session.Read(buf)
 			if err != nil && err != io.EOF {
-				logger.Errorf("failed to read from session: %s", err)
-				client.Write(websocket.BinaryMessage, []byte(err.Error()))
+				// logger.Errorf("failed to read from session: %s", err)
+				// client.Write(websocket.BinaryMessage, []byte(err.Error()))
 				return
 			}
 
