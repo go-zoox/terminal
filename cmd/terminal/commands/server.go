@@ -21,7 +21,7 @@ func RegistryServer(app *cli.MultipleProgram) {
 				Name:    "shell",
 				Usage:   "specify terminal shell",
 				Aliases: []string{"s"},
-				EnvVars: []string{"GO_ZOOX_TERMINAL_SHELL"},
+				EnvVars: []string{"GO_ZOOX_TERMINAL_SHELL", "SHELL"},
 			},
 			&cli.StringFlag{
 				Name:    "init-command",
@@ -56,6 +56,11 @@ func RegistryServer(app *cli.MultipleProgram) {
 				EnvVars: []string{"GO_ZOOX_TERMINAL_DISABLE_HISTORY"},
 				Value:   false,
 			},
+			&cli.BoolFlag{
+				Name:    "read-only",
+				Usage:   "Read Only",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_READ_ONLY"},
+			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
 			s := server.NewHTTPServer(&server.HTTPServerConfig{
@@ -70,6 +75,8 @@ func RegistryServer(app *cli.MultipleProgram) {
 				InitCommand: ctx.String("init-command"),
 				//
 				IsHistoryDisabled: ctx.Bool("disable-history"),
+				//
+				ReadOnly: ctx.Bool("read-only"),
 			})
 
 			return s.Run()
