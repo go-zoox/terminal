@@ -99,9 +99,9 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					IsHistoryDisabled: cfg.IsHistoryDisabled,
 					ReadOnly:          cfg.ReadOnly,
 				}
-				if connectCfg.InitCommand == "" && ctx.Query().Get("init_command").String() != "" {
-					connectCfg.InitCommand = ctx.Query().Get("init_command").String()
-				}
+
+				// @TODO
+				withQuery(ctx, connectCfg)
 
 				if session, err = connect(ctx, client, connectCfg); err != nil {
 					logger.Errorf("failed to connect: %s", err)
@@ -158,10 +158,39 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 		}
 
 	}
-
 }
 
 type Resize struct {
 	Columns int `json:"cols"`
 	Rows    int `json:"rows"`
+}
+
+func withQuery(ctx *zoox.Context, cfg *ConnectConfig) {
+	if cfg.InitCommand == "" && ctx.Query().Get("init_command").String() != "" {
+		cfg.InitCommand = ctx.Query().Get("init_command").String()
+	}
+
+	if !cfg.ReadOnly && ctx.Query().Get("read_only").Bool() {
+		cfg.ReadOnly = ctx.Query().Get("read_only").Bool()
+	}
+
+	if cfg.Shell == "" && ctx.Query().Get("shell").String() != "" {
+		cfg.Shell = ctx.Query().Get("shell").String()
+	}
+
+	if cfg.Driver == "" && ctx.Query().Get("driver").String() != "" {
+		cfg.Driver = ctx.Query().Get("driver").String()
+	}
+
+	if cfg.WorkDir == "" && ctx.Query().Get("workdir").String() != "" {
+		cfg.WorkDir = ctx.Query().Get("workdir").String()
+	}
+
+	if cfg.User == "" && ctx.Query().Get("user").String() != "" {
+		cfg.User = ctx.Query().Get("user").String()
+	}
+
+	if cfg.Image == "" && ctx.Query().Get("image").String() != "" {
+		cfg.Image = ctx.Query().Get("image").String()
+	}
 }
