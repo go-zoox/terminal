@@ -25,6 +25,8 @@ type Config struct {
 	InitCommand string
 	//
 	IsHistoryDisabled bool
+	//
+	ReadOnly bool
 }
 
 type server struct {
@@ -95,6 +97,7 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					InitCommand:       data.InitCommand,
 					Image:             data.Image,
 					IsHistoryDisabled: cfg.IsHistoryDisabled,
+					ReadOnly:          cfg.ReadOnly,
 				}
 				if connectCfg.InitCommand == "" && ctx.Query().Get("init_command").String() != "" {
 					connectCfg.InitCommand = ctx.Query().Get("init_command").String()

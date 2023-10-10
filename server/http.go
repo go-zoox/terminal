@@ -25,6 +25,8 @@ type HTTPServerConfig struct {
 	InitCommand string
 	//
 	IsHistoryDisabled bool
+	//
+	ReadOnly bool
 }
 
 type httpServer struct {
@@ -76,6 +78,7 @@ func (s *httpServer) Run() error {
 		Username:          cfg.Username,
 		Password:          cfg.Password,
 		IsHistoryDisabled: cfg.IsHistoryDisabled,
+		ReadOnly:          cfg.ReadOnly,
 	}))
 
 	app.Get("/", func(ctx *zoox.Context) {

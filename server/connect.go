@@ -23,6 +23,8 @@ type ConnectConfig struct {
 	Image string
 	//
 	IsHistoryDisabled bool
+	//
+	ReadOnly bool
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
@@ -37,6 +39,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 		Shell:             cfg.Shell,
 		Image:             cfg.Image,
 		IsHistoryDisabled: cfg.IsHistoryDisabled,
+		ReadOnly:          cfg.ReadOnly,
 	})
 	if err != nil {
 		return nil, err
