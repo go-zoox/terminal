@@ -24,6 +24,37 @@ curl -o- https://raw.githubusercontent.com/zcorky/zmicro/master/install | bash
 zmicro package install terminal
 ```
 
+## Features
+* [x] Server
+  * [x] Authentication
+    * [x] Basic Auth (username/password)
+    * [ ] Bearer Token
+    * [ ] OAuth2
+    * [ ] Custom Auth Server
+  * [x] Driver Runtime
+    * [x] Host
+    * [x] Docker
+      * [x] Custom Docker Image
+    * [ ] Kubernetes
+    * [ ] SSH
+  * [x] Read Only
+  * [x] Init Command
+* [x] Client
+  * [x] Web Terminal/Client (Browser)
+    * [x] Auth
+      * [x] Basic Auth
+  * [x] Command Line Client (CLI)
+    * [x] Auth
+      * [x] Basic Auth
+    * [x] Custom Shell
+    * [x] Custom Workdir
+    * [x] Custom User
+    * [x] Custom Env
+    * [x] Env File
+    * [x] Custom Docker Image
+    * [x] Run Command Once
+    * [x] Run Script File
+
 ## Quick Start
 
 ### Start Terminal Server
@@ -95,37 +126,6 @@ OPTIONS:
    --envfile value                                  specify env file, format: key=value [$ENVFILE]
    --help, -h                                       show help
 ```
-
-## Features
-* [x] Server
-  * [x] Authentication
-    * [x] Basic Auth (username/password)
-    * [ ] Bearer Token
-    * [ ] OAuth2
-    * [ ] Custom Auth Server
-  * [x] Driver Runtime
-    * [x] Host
-    * [x] Docker
-      * [x] Custom Docker Image
-    * [ ] Kubernetes
-    * [ ] SSH
-  * [x] Read Only
-  * [x] Init Command
-* [x] Client
-  * [x] Web Terminal/Client (Browser)
-    * [x] Auth
-      * [x] Basic Auth
-  * [x] Command Line Client (CLI)
-    * [x] Auth
-      * [x] Basic Auth
-    * [x] Custom Shell
-    * [x] Custom Workdir
-    * [x] Custom User
-    * [x] Custom Env
-    * [x] Env File
-    * [x] Custom Docker Image
-    * [x] Run Command Once
-    * [x] Run Script File
 
 
 ## License
