@@ -1,4 +1,4 @@
-# Ingress - A Easy, Powerful, Fexible Reverse Proxy
+# Terminal - A powerful terminal server / client，support Web Terminal
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-zoox/terminal)](https://pkg.go.dev/github.com/go-zoox/terminal)
 [![Build Status](https://github.com/go-zoox/terminal/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/go-zoox/terminal/actions/workflows/release.yml)
