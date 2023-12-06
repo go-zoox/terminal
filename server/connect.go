@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"io"
 
 	"github.com/go-zoox/command"
@@ -25,11 +26,18 @@ type ConnectConfig struct {
 	IsHistoryDisabled bool
 	//
 	ReadOnly bool
+	//
+	WaitUntilFinished bool
 }
 
 func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
+	cmdCTX := ctx.Context()
+	if cfg.WaitUntilFinished {
+		cmdCTX = context.Background()
+	}
+
 	cmd, err := command.New(&command.Config{
-		Context: ctx.Context(),
+		Context: cmdCTX,
 		//
 		Engine:            cfg.Driver,
 		Command:           cfg.InitCommand,

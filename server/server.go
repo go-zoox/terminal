@@ -54,13 +54,14 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 
 	return func(ctx *zoox.Context, client *websocket.Client) {
 		var session terminal.Terminal
-		client.OnDisconnect = func() {
-			if session != nil {
-				if err := session.Close(); err != nil {
-					logger.Errorf("Failed to close session: %s", err)
-				}
-			}
-		}
+		// use context, never need close when on disconnect
+		// client.OnDisconnect = func() {
+		// 	if session != nil {
+		// 		if err := session.Close(); err != nil {
+		// 			logger.Errorf("Failed to close session: %s", err)
+		// 		}
+		// 	}
+		// }
 
 		client.OnTextMessage = func(rawMsg []byte) {
 			msg, err := message.Deserialize(rawMsg)
@@ -192,5 +193,9 @@ func withQuery(ctx *zoox.Context, cfg *ConnectConfig) {
 
 	if cfg.Image == "" && ctx.Query().Get("image").String() != "" {
 		cfg.Image = ctx.Query().Get("image").String()
+	}
+
+	if !cfg.WaitUntilFinished && ctx.Query().Get("wait_until_finished").Bool() {
+		cfg.WaitUntilFinished = ctx.Query().Get("wait_until_finished").Bool()
 	}
 }
