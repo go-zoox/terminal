@@ -5,10 +5,10 @@ go 1.20
 require (
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/go-zoox/cli v1.3.6
-	github.com/go-zoox/command v1.2.9
+	github.com/go-zoox/command v1.3.0
 	github.com/go-zoox/fs v1.3.14
 	github.com/go-zoox/logger v1.4.6
-	github.com/go-zoox/zoox v1.12.32
+	github.com/go-zoox/zoox v1.12.37
 	github.com/gorilla/websocket v1.5.1
 	golang.org/x/term v0.15.0
 )
@@ -32,14 +32,14 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-zoox/cache v1.0.6 // indirect
 	github.com/go-zoox/chalk v1.0.2 // indirect
-	github.com/go-zoox/commands-as-a-service v1.6.5 // indirect
+	github.com/go-zoox/commands-as-a-service v1.6.8 // indirect
 	github.com/go-zoox/compress v1.0.1 // indirect
 	github.com/go-zoox/concurrency v1.2.0 // indirect
 	github.com/go-zoox/config v1.2.10 // indirect
 	github.com/go-zoox/cookie v1.2.0 // indirect
 	github.com/go-zoox/core-utils v1.3.1 // indirect
 	github.com/go-zoox/counter v1.2.1 // indirect
-	github.com/go-zoox/cron v1.1.2 // indirect
+	github.com/go-zoox/cron v1.2.0 // indirect
 	github.com/go-zoox/crypto v1.1.8 // indirect
 	github.com/go-zoox/datetime v1.2.2 // indirect
 	github.com/go-zoox/debug v1.0.2 // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/go-zoox/uuid v0.0.1 // indirect
 	github.com/goccy/go-yaml v1.11.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -93,7 +93,7 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.16.0 // indirect
+	golang.org/x/tools v0.16.1 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
