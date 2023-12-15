@@ -99,9 +99,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 				return
 			}
 
-			client.Write(websocket.BinaryMessage, msg.Msg())
-
-			if err == io.EOF {
+			if err = client.Write(websocket.BinaryMessage, msg.Msg()); err == io.EOF {
 				return
 			}
 		}
