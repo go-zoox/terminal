@@ -85,7 +85,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 		buf := make([]byte, 1024)
 		for {
 			n, err := session.Read(buf)
-			if err != nil && err != io.EOF {
+			if err != nil {
 				// logger.Errorf("failed to read from session: %s", err)
 				// client.Write(websocket.BinaryMessage, []byte(err.Error()))
 				return
