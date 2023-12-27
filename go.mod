@@ -9,7 +9,7 @@ require (
 	github.com/go-zoox/fs v1.3.14
 	github.com/go-zoox/logger v1.4.6
 	github.com/go-zoox/websocket v0.0.5
-	github.com/go-zoox/zoox v1.13.0
+	github.com/go-zoox/zoox v1.13.1
 	golang.org/x/term v0.15.0
 )
 
@@ -99,11 +99,3 @@ require (
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// replace github.com/go-zoox/zoox => ../zoox
-
-// replace github.com/go-zoox/websocket => ../websocket
-
-// replace github.com/go-zoox/eventemitter => ../eventemitter
-
-// replace github.com/go-zoox/command => ../command
