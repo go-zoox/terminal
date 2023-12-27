@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,7 +12,7 @@ import (
 
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
-	"github.com/gorilla/websocket"
+	"github.com/go-zoox/websocket"
 	"golang.org/x/term"
 )
 
@@ -48,12 +47,13 @@ type Config struct {
 type client struct {
 	cfg *Config
 	//
-	conn *websocket.Conn
+	conn websocket.Conn
 	//
 	stdout io.Writer
 	stderr io.Writer
 	//
-	closeCh chan error
+	closeCh   chan error
+	messageCh chan []byte
 }
 
 type ExitError struct {
@@ -81,7 +81,8 @@ func New(cfg *Config) Client {
 		stdout: stdout,
 		stderr: stderr,
 		//
-		closeCh: make(chan error),
+		closeCh:   make(chan error),
+		messageCh: make(chan []byte),
 	}
 }
 
@@ -98,81 +99,88 @@ func (c *client) Connect() error {
 		headers.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(c.cfg.Username+":"+c.cfg.Password))))
 	}
 
-	conn, response, err := websocket.DefaultDialer.DialContext(ctx, u.String(), headers)
+	wc, err := websocket.NewClient(func(opt *websocket.ClientOption) {
+		opt.Context = ctx
+		opt.Addr = u.String()
+		opt.Headers = headers
+	})
 	if err != nil {
-		if response == nil || response.Body == nil {
-			cancel()
-			return fmt.Errorf("failed to connect at %s (error: %s)", u.String(), err)
-		}
-
-		body, errB := ioutil.ReadAll(response.Body)
-		if errB != nil {
-			cancel()
-			return fmt.Errorf("failed to connect at %s (status: %s, error: %s)", u.String(), response.Status, err)
-		}
-
 		cancel()
-		return fmt.Errorf("failed to connect at %s (status: %d, response: %s, error: %v)", u.String(), response.StatusCode, string(body), err)
-	}
-	c.conn = conn
-	defer cancel()
-
-	// connect
-	if err := c.connect(); err != nil {
 		return err
 	}
+
 	connectCh := make(chan struct{})
 
-	// listen
-	go func() {
+	wc.OnConnect(func(conn websocket.Conn) error {
+		cancel()
+
+		if c.cfg.Image != "" {
+			c.cfg.Container = "docker"
+		}
+
+		msg := &message.Message{}
+		msg.SetType(message.TypeConnect)
+		msg.SetConnect(&message.Connect{
+			Driver: c.cfg.Container,
+			//
+			Shell:       c.cfg.Shell,
+			Environment: c.cfg.Environment,
+			WorkDir:     c.cfg.WorkDir,
+			User:        c.cfg.User,
+			InitCommand: c.cfg.Command,
+			//
+			Image: c.cfg.Image,
+			//
+			Username: c.cfg.Username,
+			Password: c.cfg.Password,
+		})
+
+		if err := msg.Serialize(); err != nil {
+			return err
+		}
+
+		if err := conn.WriteTextMessage(msg.Msg()); err != nil {
+			return err
+		}
+
 		for {
-			messageType, rawMsg, err := conn.ReadMessage()
-			if err != nil {
-				// if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-				// 	return
-				// }
-
-				if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
-					err = nil
+			select {
+			case msg := <-c.messageCh:
+				if err := conn.WriteTextMessage(msg); err != nil {
+					return err
 				}
-
-				// if websocket.IsCloseError(err, websocket.CloseGoingAway) {
-				// 	return
-				// }
-
-				c.closeCh <- err
-				return
-			}
-
-			if messageType != websocket.BinaryMessage {
-				c.stderr.Write([]byte(fmt.Sprintf("only binary message is supported: %d\n", messageType)))
-				continue
-			}
-
-			// c.stdout.Write(rawMsg)
-
-			msg, err := message.Deserialize(rawMsg)
-			if err != nil {
-				c.stderr.Write([]byte(fmt.Sprintf("failed to deserialize message: %s\n", err)))
-				continue
-			}
-
-			switch msg.Type() {
-			case message.TypeConnect:
-				connectCh <- struct{}{}
-			case message.TypeOutput:
-				c.stdout.Write(msg.Output())
-			case message.TypeExit:
-				data := msg.Exit()
-				c.closeCh <- &ExitError{
-					Code:    data.Code,
-					Message: data.Message,
-				}
-			default:
-				c.stderr.Write([]byte(fmt.Sprintf("unknown message type: %v\n", msg.Type())))
 			}
 		}
-	}()
+	})
+
+	wc.OnBinaryMessage(func(conn websocket.Conn, rawMsg []byte) error {
+		msg, err := message.Deserialize(rawMsg)
+		if err != nil {
+			c.stderr.Write([]byte(fmt.Sprintf("failed to deserialize message: %s\n", err)))
+			return nil
+		}
+
+		switch msg.Type() {
+		case message.TypeConnect:
+			connectCh <- struct{}{}
+		case message.TypeOutput:
+			c.stdout.Write(msg.Output())
+		case message.TypeExit:
+			data := msg.Exit()
+			c.closeCh <- &ExitError{
+				Code:    data.Code,
+				Message: data.Message,
+			}
+		default:
+			c.stderr.Write([]byte(fmt.Sprintf("unknown message type: %v\n", msg.Type())))
+		}
+
+		return nil
+	})
+
+	if err := wc.Connect(); err != nil {
+		return err
+	}
 
 	// wait for connect
 	<-connectCh
@@ -183,35 +191,6 @@ func (c *client) Connect() error {
 func (c *client) Close() error {
 	close(c.closeCh)
 	return c.conn.Close()
-}
-
-func (c *client) connect() error {
-	if c.cfg.Image != "" {
-		c.cfg.Container = "docker"
-	}
-
-	msg := &message.Message{}
-	msg.SetType(message.TypeConnect)
-	msg.SetConnect(&message.Connect{
-		Driver: c.cfg.Container,
-		//
-		Shell:       c.cfg.Shell,
-		Environment: c.cfg.Environment,
-		WorkDir:     c.cfg.WorkDir,
-		User:        c.cfg.User,
-		InitCommand: c.cfg.Command,
-		//
-		Image: c.cfg.Image,
-		//
-		Username: c.cfg.Username,
-		Password: c.cfg.Password,
-	})
-
-	if err := msg.Serialize(); err != nil {
-		return err
-	}
-
-	return c.conn.WriteMessage(websocket.TextMessage, msg.Msg())
 }
 
 func (c *client) Resize() error {
@@ -231,7 +210,9 @@ func (c *client) Resize() error {
 		return err
 	}
 
-	return c.conn.WriteMessage(websocket.TextMessage, msg.Msg())
+	c.messageCh <- msg.Msg()
+
+	return nil
 }
 
 func (c *client) Send(key []byte) error {
@@ -242,7 +223,8 @@ func (c *client) Send(key []byte) error {
 		return err
 	}
 
-	return c.conn.WriteMessage(websocket.TextMessage, msg.Msg())
+	c.messageCh <- msg.Msg()
+	return nil
 }
 
 func (c *client) OnClose() chan error {

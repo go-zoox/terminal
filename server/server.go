@@ -6,12 +6,13 @@ import (
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
+	"github.com/go-zoox/websocket"
+	"github.com/go-zoox/websocket/conn"
 	"github.com/go-zoox/zoox"
-	"github.com/go-zoox/zoox/components/application/websocket"
 )
 
 type Server interface {
-	Serve() zoox.WsHandlerFunc
+	// Serve() zoox.WsHandlerFunc
 }
 
 type Config struct {
@@ -39,11 +40,11 @@ func New(cfg *Config) Server {
 	}
 }
 
-func (s *server) Serve() zoox.WsHandlerFunc {
-	return Serve(s.cfg)
-}
+// func (s *server) Serve() zoox.WsHandlerFunc {
+// 	return Serve(s.cfg)
+// }
 
-func Serve(cfg *Config) zoox.WsHandlerFunc {
+func Serve(cfg *Config) func(server websocket.Server) {
 	if cfg == nil {
 		panic("terminal serve config is nil")
 	}
@@ -52,8 +53,8 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 		cfg.DriverImage = "whatwewant/zmicro:v1"
 	}
 
-	return func(ctx *zoox.Context, client *websocket.Client) {
-		var session terminal.Terminal
+	return func(server websocket.Server) {
+
 		// use context, never need close when on disconnect
 		// client.OnDisconnect = func() {
 		// 	if session != nil {
@@ -63,11 +64,17 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 		// 	}
 		// }
 
-		client.OnTextMessage = func(rawMsg []byte) {
+		server.OnClose(func(conn conn.Conn) error {
+			fmt.Println("ws client closed")
+			return nil
+		})
+
+		server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
+			fmt.Println("nnnn:", string(rawMsg))
 			msg, err := message.Deserialize(rawMsg)
 			if err != nil {
 				logger.Errorf("Failed to deserialize message: %s", err)
-				return
+				return nil
 			}
 
 			switch msg.Type() {
@@ -102,9 +109,10 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 				}
 
 				// @TODO
-				withQuery(ctx, connectCfg)
+				withQuery(&zoox.Context{Request: conn.Request()}, connectCfg)
 
-				if session, err = connect(ctx, client, connectCfg); err != nil {
+				session, err := connect(conn.Context(), conn, connectCfg)
+				if err != nil {
 					logger.Errorf("failed to connect: %s", err)
 
 					msg := &message.Message{}
@@ -115,39 +123,44 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 					})
 					if err := msg.Serialize(); err != nil {
 						logger.Errorf("failed to serialize message: %s", err)
-						return
+						return nil
 					}
 
-					client.Write(websocket.BinaryMessage, msg.Msg())
+					conn.WriteBinaryMessage(msg.Msg())
 
-					client.Close()
-					return
+					conn.Close()
+					return nil
 				}
+
+				conn.Set("session", session)
 
 				msg := &message.Message{}
 				msg.SetType(message.TypeConnect)
 				// msg.SetOutput(buf[:n])
 				if err := msg.Serialize(); err != nil {
 					logger.Errorf("failed to serialize message: %s", err)
-					return
+					return nil
 				}
 
-				client.Write(websocket.BinaryMessage, msg.Msg())
+				conn.WriteBinaryMessage(msg.Msg())
 			case message.TypeKey:
-				if session == nil {
-					ctx.Logger.Errorf("session is not ready")
-					client.Disconnect()
-					return
+				v, err := conn.Get("session")
+				if err != nil {
+					logger.Errorf("failed to get session: %s", err)
+					conn.Close()
+					return nil
 				}
+				session := v.(terminal.Terminal)
 
 				session.Write(msg.Key())
 			case message.TypeResize:
-				if session == nil {
-					ctx.Logger.Errorf("session is not ready")
-					client.Disconnect()
-					return
+				v, err := conn.Get("session")
+				if err != nil {
+					logger.Errorf("failed to get session: %s", err)
+					conn.Close()
+					return nil
 				}
-
+				session := v.(terminal.Terminal)
 				resize := msg.Resize()
 				err = session.Resize(resize.Rows, resize.Columns)
 				if err != nil {
@@ -156,7 +169,9 @@ func Serve(cfg *Config) zoox.WsHandlerFunc {
 			default:
 				logger.Errorf("Unknown message type: %d", msg.Type())
 			}
-		}
+
+			return nil
+		})
 
 	}
 }

@@ -5,12 +5,12 @@ import (
 	"io"
 
 	"github.com/go-zoox/command"
+	"github.com/go-zoox/command/config"
 	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
-	"github.com/go-zoox/zoox"
-	"github.com/go-zoox/zoox/components/application/websocket"
+	"github.com/go-zoox/websocket"
 )
 
 type ConnectConfig struct {
@@ -30,14 +30,13 @@ type ConnectConfig struct {
 	WaitUntilFinished bool
 }
 
-func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (session terminal.Terminal, err error) {
-	cmdCTX := ctx.Context()
+func connect(ctx context.Context, conn websocket.Conn, cfg *ConnectConfig) (session terminal.Terminal, err error) {
 	if cfg.WaitUntilFinished {
-		cmdCTX = context.Background()
+		ctx = context.Background()
 	}
 
-	cmd, err := command.New(&command.Config{
-		Context: cmdCTX,
+	cmd, err := command.New(&config.Config{
+		Context: ctx,
 		//
 		Engine:            cfg.Driver,
 		Command:           cfg.InitCommand,
@@ -72,13 +71,11 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 					return
 				}
 
-				client.Write(websocket.BinaryMessage, msg.Msg())
+				conn.WriteBinaryMessage(msg.Msg())
 			} else {
 				logger.Errorf("failed to wait session: %s", err)
 			}
 		}
-
-		client.Disconnect()
 	}()
 
 	go func() {
@@ -99,7 +96,7 @@ func connect(ctx *zoox.Context, client *websocket.Client, cfg *ConnectConfig) (s
 				return
 			}
 
-			if err = client.Write(websocket.BinaryMessage, msg.Msg()); err == io.EOF {
+			if err = conn.WriteBinaryMessage(msg.Msg()); err == io.EOF {
 				return
 			}
 		}
