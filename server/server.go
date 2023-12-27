@@ -12,7 +12,7 @@ import (
 )
 
 type Server interface {
-	// Serve() zoox.WsHandlerFunc
+	Serve() (server websocket.Server, err error)
 }
 
 type Config struct {
@@ -28,6 +28,7 @@ type Config struct {
 	IsHistoryDisabled bool
 	//
 	ReadOnly bool
+	//
 }
 
 type server struct {
@@ -40,11 +41,16 @@ func New(cfg *Config) Server {
 	}
 }
 
-// func (s *server) Serve() zoox.WsHandlerFunc {
-// 	return Serve(s.cfg)
-// }
+func (s *server) Serve() (server websocket.Server, err error) {
+	return Serve(s.cfg)
+}
 
-func Serve(cfg *Config) func(server websocket.Server) {
+func Serve(cfg *Config) (server websocket.Server, err error) {
+	server, err = websocket.NewServer()
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg == nil {
 		panic("terminal serve config is nil")
 	}
@@ -53,126 +59,124 @@ func Serve(cfg *Config) func(server websocket.Server) {
 		cfg.DriverImage = "whatwewant/zmicro:v1"
 	}
 
-	return func(server websocket.Server) {
+	// use context, never need close when on disconnect
+	// client.OnDisconnect = func() {
+	// 	if session != nil {
+	// 		if err := session.Close(); err != nil {
+	// 			logger.Errorf("Failed to close session: %s", err)
+	// 		}
+	// 	}
+	// }
 
-		// use context, never need close when on disconnect
-		// client.OnDisconnect = func() {
-		// 	if session != nil {
-		// 		if err := session.Close(); err != nil {
-		// 			logger.Errorf("Failed to close session: %s", err)
-		// 		}
-		// 	}
-		// }
+	server.OnClose(func(conn conn.Conn) error {
+		logger.Infof("[close] conn %s", conn.ID())
+		return nil
+	})
 
-		server.OnClose(func(conn conn.Conn) error {
-			logger.Infof("[close] conn %s", conn.ID())
+	server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
+		msg, err := message.Deserialize(rawMsg)
+		if err != nil {
+			logger.Errorf("Failed to deserialize message: %s", err)
 			return nil
-		})
+		}
 
-		server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
-			msg, err := message.Deserialize(rawMsg)
-			if err != nil {
-				logger.Errorf("Failed to deserialize message: %s", err)
-				return nil
+		switch msg.Type() {
+		case message.TypeConnect:
+			data := msg.Connect()
+			if data.Driver == "" {
+				data.Driver = cfg.Driver
+			}
+			if data.Shell == "" {
+				data.Shell = cfg.Shell
+			}
+			if data.InitCommand == "" {
+				data.InitCommand = cfg.InitCommand
+			}
+			if data.Image == "" {
+				data.Image = cfg.DriverImage
+			}
+			// if data.User == "" {
+			// 	data.User = cfg.User
+			// }
+
+			connectCfg := &ConnectConfig{
+				Driver:            data.Driver,
+				Shell:             data.Shell,
+				Environment:       data.Environment,
+				WorkDir:           data.WorkDir,
+				User:              data.User,
+				InitCommand:       data.InitCommand,
+				Image:             data.Image,
+				IsHistoryDisabled: cfg.IsHistoryDisabled,
+				ReadOnly:          cfg.ReadOnly,
 			}
 
-			switch msg.Type() {
-			case message.TypeConnect:
-				data := msg.Connect()
-				if data.Driver == "" {
-					data.Driver = cfg.Driver
-				}
-				if data.Shell == "" {
-					data.Shell = cfg.Shell
-				}
-				if data.InitCommand == "" {
-					data.InitCommand = cfg.InitCommand
-				}
-				if data.Image == "" {
-					data.Image = cfg.DriverImage
-				}
-				// if data.User == "" {
-				// 	data.User = cfg.User
-				// }
+			// @TODO
+			withQuery(&zoox.Context{Request: conn.Request()}, connectCfg)
 
-				connectCfg := &ConnectConfig{
-					Driver:            data.Driver,
-					Shell:             data.Shell,
-					Environment:       data.Environment,
-					WorkDir:           data.WorkDir,
-					User:              data.User,
-					InitCommand:       data.InitCommand,
-					Image:             data.Image,
-					IsHistoryDisabled: cfg.IsHistoryDisabled,
-					ReadOnly:          cfg.ReadOnly,
-				}
-
-				// @TODO
-				withQuery(&zoox.Context{Request: conn.Request()}, connectCfg)
-
-				session, err := connect(conn.Context(), conn, connectCfg)
-				if err != nil {
-					logger.Errorf("failed to connect: %s", err)
-
-					msg := &message.Message{}
-					msg.SetType(message.TypeExit)
-					msg.SetExit(&message.Exit{
-						Code:    1,
-						Message: fmt.Sprintf("failed to connect: %s", err.Error()),
-					})
-					if err := msg.Serialize(); err != nil {
-						logger.Errorf("failed to serialize message: %s", err)
-						return nil
-					}
-
-					conn.WriteBinaryMessage(msg.Msg())
-
-					conn.Close()
-					return nil
-				}
-
-				conn.Set("session", session)
+			session, err := connect(conn.Context(), conn, connectCfg)
+			if err != nil {
+				logger.Errorf("failed to connect: %s", err)
 
 				msg := &message.Message{}
-				msg.SetType(message.TypeConnect)
-				// msg.SetOutput(buf[:n])
+				msg.SetType(message.TypeExit)
+				msg.SetExit(&message.Exit{
+					Code:    1,
+					Message: fmt.Sprintf("failed to connect: %s", err.Error()),
+				})
 				if err := msg.Serialize(); err != nil {
 					logger.Errorf("failed to serialize message: %s", err)
 					return nil
 				}
 
 				conn.WriteBinaryMessage(msg.Msg())
-			case message.TypeKey:
-				v, err := conn.Get("session")
-				if err != nil {
-					logger.Errorf("failed to get session: %s", err)
-					conn.Close()
-					return nil
-				}
-				session := v.(terminal.Terminal)
 
-				session.Write(msg.Key())
-			case message.TypeResize:
-				v, err := conn.Get("session")
-				if err != nil {
-					logger.Errorf("failed to get session: %s", err)
-					conn.Close()
-					return nil
-				}
-				session := v.(terminal.Terminal)
-				resize := msg.Resize()
-				err = session.Resize(resize.Rows, resize.Columns)
-				if err != nil {
-					logger.Errorf("Failed to resize terminal: %s", err)
-				}
-			default:
-				logger.Errorf("Unknown message type: %d", msg.Type())
+				conn.Close()
+				return nil
 			}
 
-			return nil
-		})
+			conn.Set("session", session)
 
-	}
+			msg := &message.Message{}
+			msg.SetType(message.TypeConnect)
+			// msg.SetOutput(buf[:n])
+			if err := msg.Serialize(); err != nil {
+				logger.Errorf("failed to serialize message: %s", err)
+				return nil
+			}
+
+			conn.WriteBinaryMessage(msg.Msg())
+		case message.TypeKey:
+			v, err := conn.Get("session")
+			if err != nil {
+				logger.Errorf("failed to get session: %s", err)
+				conn.Close()
+				return nil
+			}
+			session := v.(terminal.Terminal)
+
+			session.Write(msg.Key())
+		case message.TypeResize:
+			v, err := conn.Get("session")
+			if err != nil {
+				logger.Errorf("failed to get session: %s", err)
+				conn.Close()
+				return nil
+			}
+			session := v.(terminal.Terminal)
+			resize := msg.Resize()
+			err = session.Resize(resize.Rows, resize.Columns)
+			if err != nil {
+				logger.Errorf("Failed to resize terminal: %s", err)
+			}
+		default:
+			logger.Errorf("Unknown message type: %d", msg.Type())
+		}
+
+		return nil
+	})
+
+	return
 }
 
 type Resize struct {

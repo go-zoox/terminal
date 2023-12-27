@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-zoox/logger"
+	"github.com/go-zoox/safe"
 	"github.com/go-zoox/terminal/message"
 	"github.com/go-zoox/websocket"
 	"golang.org/x/term"
@@ -22,7 +23,7 @@ type Client interface {
 	Resize() error
 	Send(key []byte) error
 	//
-	OnClose() chan error
+	OnExit(func(code int, message string))
 }
 
 type Config struct {
@@ -47,13 +48,13 @@ type Config struct {
 type client struct {
 	cfg *Config
 	//
-	conn websocket.Conn
-	//
 	stdout io.Writer
 	stderr io.Writer
 	//
-	closeCh   chan error
+	closeCh   chan struct{}
 	messageCh chan []byte
+	//
+	exitCh chan *ExitError
 }
 
 type ExitError struct {
@@ -81,8 +82,10 @@ func New(cfg *Config) Client {
 		stdout: stdout,
 		stderr: stderr,
 		//
-		closeCh:   make(chan error),
+		closeCh:   make(chan struct{}),
 		messageCh: make(chan []byte),
+		//
+		exitCh: make(chan *ExitError),
 	}
 }
 
@@ -113,6 +116,12 @@ func (c *client) Connect() error {
 
 	wc.OnConnect(func(conn websocket.Conn) error {
 		cancel()
+
+		// close
+		go func() {
+			<-c.closeCh
+			conn.Close()
+		}()
 
 		if c.cfg.Image != "" {
 			c.cfg.Container = "docker"
@@ -167,7 +176,8 @@ func (c *client) Connect() error {
 			c.stdout.Write(msg.Output())
 		case message.TypeExit:
 			data := msg.Exit()
-			c.closeCh <- &ExitError{
+
+			c.exitCh <- &ExitError{
 				Code:    data.Code,
 				Message: data.Message,
 			}
@@ -189,8 +199,11 @@ func (c *client) Connect() error {
 }
 
 func (c *client) Close() error {
-	close(c.closeCh)
-	return c.conn.Close()
+	return safe.Do(func() error {
+		c.closeCh <- struct{}{}
+		close(c.closeCh)
+		return nil
+	})
 }
 
 func (c *client) Resize() error {
@@ -227,6 +240,7 @@ func (c *client) Send(key []byte) error {
 	return nil
 }
 
-func (c *client) OnClose() chan error {
-	return c.closeCh
+func (c *client) OnExit(cb func(code int, message string)) {
+	exitErr := <-c.exitCh
+	cb(exitErr.Code, exitErr.Message)
 }

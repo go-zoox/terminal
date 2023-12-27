@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 
-	websocket "github.com/go-zoox/websocket/server"
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/defaults"
 )
@@ -71,28 +70,21 @@ func (s *httpServer) Run() error {
 		})
 	}
 
-	// server, err := app.WebSocket(cfg.Path)
-	// if err != nil {
-	// 	return err
-	// }
-
-	server, err := websocket.New()
-	if err != nil {
-		return err
-	}
-
-	Serve(&Config{
-		Shell:             cfg.Shell,
-		Driver:            cfg.Driver,
-		DriverImage:       cfg.DriverImage,
-		InitCommand:       cfg.InitCommand,
-		Username:          cfg.Username,
-		Password:          cfg.Password,
-		IsHistoryDisabled: cfg.IsHistoryDisabled,
-		ReadOnly:          cfg.ReadOnly,
-	})(server)
-
 	app.WebSocket(cfg.Path, func(opt *zoox.WebSocketOption) {
+		server, err := Serve(&Config{
+			Shell:             cfg.Shell,
+			Driver:            cfg.Driver,
+			DriverImage:       cfg.DriverImage,
+			InitCommand:       cfg.InitCommand,
+			Username:          cfg.Username,
+			Password:          cfg.Password,
+			IsHistoryDisabled: cfg.IsHistoryDisabled,
+			ReadOnly:          cfg.ReadOnly,
+		})
+		if err != nil {
+			panic(fmt.Errorf("failed to create websocket server: %s", err))
+		}
+
 		opt.Server = server
 	})
 

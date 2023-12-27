@@ -11,7 +11,6 @@ import (
 	"github.com/eiannone/keyboard"
 	"github.com/go-zoox/cli"
 	"github.com/go-zoox/fs"
-	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/client"
 )
 
@@ -140,22 +139,10 @@ func RegistryClient(app *cli.MultipleProgram) {
 				Password: ctx.String("password"),
 			})
 
-			go func() {
-				err := <-c.OnClose()
-				if err != nil {
-					if e, ok := err.(*client.ExitError); ok {
-						os.Stdout.Write([]byte(e.Message + "\n"))
-						os.Exit(e.Code)
-						return
-					}
-
-					logger.Errorf("server disconnect by %v", err)
-					os.Exit(1)
-				} else {
-					// logger.Errorf("client disconnect")
-					os.Exit(0)
-				}
-			}()
+			c.OnExit(func(code int, message string) {
+				os.Stdout.Write([]byte(message + "\n"))
+				os.Exit(code)
+			})
 
 			if err := c.Connect(); err != nil {
 				return err
