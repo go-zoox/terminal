@@ -65,12 +65,11 @@ func Serve(cfg *Config) func(server websocket.Server) {
 		// }
 
 		server.OnClose(func(conn conn.Conn) error {
-			fmt.Println("ws client closed")
+			logger.Infof("[close] conn %s", conn.ID())
 			return nil
 		})
 
 		server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
-			fmt.Println("nnnn:", string(rawMsg))
 			msg, err := message.Deserialize(rawMsg)
 			if err != nil {
 				logger.Errorf("Failed to deserialize message: %s", err)
