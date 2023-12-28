@@ -147,9 +147,9 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 			conn.WriteBinaryMessage(msg.Msg())
 		case message.TypeKey:
-			v, err := conn.Get("session")
-			if err != nil {
-				logger.Errorf("failed to get session: %s", err)
+			v := conn.Get("session")
+			if v == nil {
+				logger.Errorf("failed to get session")
 				conn.Close()
 				return nil
 			}
@@ -157,9 +157,9 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 			session.Write(msg.Key())
 		case message.TypeResize:
-			v, err := conn.Get("session")
-			if err != nil {
-				logger.Errorf("failed to get session: %s", err)
+			v := conn.Get("session")
+			if v == nil {
+				logger.Errorf("failed to get session")
 				conn.Close()
 				return nil
 			}
