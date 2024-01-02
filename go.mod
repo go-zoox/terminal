@@ -9,8 +9,8 @@ require (
 	github.com/go-zoox/fs v1.3.14
 	github.com/go-zoox/logger v1.4.6
 	github.com/go-zoox/safe v1.0.1
-	github.com/go-zoox/websocket v0.0.8
-	github.com/go-zoox/zoox v1.13.3
+	github.com/go-zoox/websocket v0.0.9
+	github.com/go-zoox/zoox v1.13.4
 	golang.org/x/term v0.15.0
 )
 
@@ -47,7 +47,7 @@ require (
 	github.com/go-zoox/dotenv v1.2.5 // indirect
 	github.com/go-zoox/encoding v1.2.1 // indirect
 	github.com/go-zoox/errors v1.0.2 // indirect
-	github.com/go-zoox/eventemitter v1.0.9 // indirect
+	github.com/go-zoox/eventemitter v1.2.0 // indirect
 	github.com/go-zoox/fetch v1.7.16 // indirect
 	github.com/go-zoox/gzip v1.0.0 // indirect
 	github.com/go-zoox/headers v1.0.8 // indirect
