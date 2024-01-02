@@ -95,5 +95,9 @@ func (s *httpServer) Run() error {
 		}))
 	})
 
+	app.Get("/hi", func(ctx *zoox.Context) {
+		ctx.String(200, "hi")
+	})
+
 	return app.Run(addr)
 }
