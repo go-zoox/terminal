@@ -68,8 +68,8 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	// 	}
 	// }
 
-	server.OnClose(func(conn conn.Conn) error {
-		logger.Infof("[close] conn %s", conn.ID())
+	server.OnClose(func(conn conn.Conn, code int, message string) error {
+		logger.Infof("[close] conn %s (code: %d, message: %s)", conn.ID(), code, message)
 		return nil
 	})
 
