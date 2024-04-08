@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
@@ -211,6 +212,22 @@ func withQuery(ctx *zoox.Context, cfg *ConnectConfig) {
 
 	if cfg.Image == "" && ctx.Query().Get("image").String() != "" {
 		cfg.Image = ctx.Query().Get("image").String()
+	}
+
+	if environments, err := ctx.Request.URL.Query()["environment"]; err {
+		if cfg.Environment == nil {
+			cfg.Environment = make(map[string]string)
+		}
+
+		for _, env := range environments {
+			kv := strings.Split(env, "=")
+			if len(kv) == 1 && kv[0] != "" {
+				cfg.Environment[kv[0]] = ""
+				continue
+			} else if len(kv) == 2 {
+				cfg.Environment[kv[0]] = kv[1]
+			}
+		}
 	}
 
 	if !cfg.WaitUntilFinished && ctx.Query().Get("wait_until_finished").Bool() {
