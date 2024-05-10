@@ -48,6 +48,7 @@ func RenderXTerm(data zoox.H) string {
 					Key: '1',
 					Resize: '2',
 					Output: '6',
+					HeartBeat: '8',
 				};
 				var config = %s;
 
@@ -99,6 +100,16 @@ func RenderXTerm(data zoox.H) string {
 						}
 
 						term.focus();
+					} else if (typ === messageType.HeartBeat.charCodeAt(0)) {
+						ws.send(messageType.HeartBeat + 'null');
+
+						// // send binary message
+						// // const text = messageType.HeartBeat;
+						// const text = messageType.HeartBeat + 'null';
+						// const encoder = new TextEncoder();
+						// const arrayBuffer = encoder.encode(text);
+						// const uint8Array = new Uint8Array(arrayBuffer);
+						// ws.send(uint8Array);
 					}
 				};
 		

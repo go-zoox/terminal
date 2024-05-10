@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
@@ -69,15 +70,48 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	// 	}
 	// }
 
+	server.OnConnect(func(conn conn.Conn) error {
+		closeCh := make(chan struct{})
+		conn.OnClose(func(code int, message string) error {
+			closeCh <- struct{}{}
+			return nil
+		})
+
+		// heartbeat send
+		go func() {
+			for {
+				select {
+				// @TODO
+				case <-time.After(13 * time.Second):
+					logger.Infof("[ID: %s][heartbeat] send ...", conn.ID())
+
+					msg := &message.Message{}
+					msg.SetType(message.TypeHeartBeat)
+					if err := msg.Serialize(); err != nil {
+						logger.Errorf("[ID: %s]failed to serialize message: %s", conn.ID(), err)
+						break
+					}
+
+					conn.WriteBinaryMessage(msg.Msg())
+				case <-closeCh:
+					logger.Infof("[ID: %s][heartbeat] cannel when close", conn.ID())
+					return
+				}
+			}
+		}()
+
+		return nil
+	})
+
 	server.OnClose(func(conn conn.Conn, code int, message string) error {
-		logger.Infof("[close] conn %s (code: %d, message: %s)", conn.ID(), code, message)
+		logger.Infof("[ID: %s][close] code: %d, message: %s", conn.ID(), code, message)
 		return nil
 	})
 
 	server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
 		msg, err := message.Deserialize(rawMsg)
 		if err != nil {
-			logger.Errorf("Failed to deserialize message: %s", err)
+			logger.Errorf("[ID: %s] Failed to deserialize message: %s", conn.ID(), err)
 			return nil
 		}
 
@@ -117,7 +151,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 			session, err := connect(conn.Context(), conn, connectCfg)
 			if err != nil {
-				logger.Errorf("failed to connect: %s", err)
+				logger.Errorf("[ID: %s] failed to connect: %s", conn.ID(), err)
 
 				msg := &message.Message{}
 				msg.SetType(message.TypeExit)
@@ -126,7 +160,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 					Message: fmt.Sprintf("failed to connect: %s", err.Error()),
 				})
 				if err := msg.Serialize(); err != nil {
-					logger.Errorf("failed to serialize message: %s", err)
+					logger.Errorf("[ID: %s] failed to serialize message: %s", conn.ID(), err)
 					return nil
 				}
 
@@ -142,7 +176,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			msg.SetType(message.TypeConnect)
 			// msg.SetOutput(buf[:n])
 			if err := msg.Serialize(); err != nil {
-				logger.Errorf("failed to serialize message: %s", err)
+				logger.Errorf("ID: %s] failed to serialize message: %s", conn.ID(), err)
 				return nil
 			}
 
@@ -150,7 +184,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 		case message.TypeKey:
 			v := conn.Get("session")
 			if v == nil {
-				logger.Errorf("failed to get session")
+				logger.Errorf("ID: %s] failed to get session", conn.ID())
 				conn.Close()
 				return nil
 			}
@@ -160,7 +194,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 		case message.TypeResize:
 			v := conn.Get("session")
 			if v == nil {
-				logger.Errorf("failed to get session")
+				logger.Errorf("ID: %s] failed to get session", conn.ID())
 				conn.Close()
 				return nil
 			}
@@ -168,10 +202,12 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			resize := msg.Resize()
 			err = session.Resize(resize.Rows, resize.Columns)
 			if err != nil {
-				logger.Errorf("Failed to resize terminal: %s", err)
+				logger.Errorf("ID: %s] Failed to resize terminal: %s", conn.ID(), err)
 			}
+		case message.TypeHeartBeat:
+			logger.Infof("[ID: %s][heartbeat] receive ...", conn.ID())
 		default:
-			logger.Errorf("Unknown message type: %d", msg.Type())
+			logger.Errorf("ID: %s] Unknown message type: %d", conn.ID(), msg.Type())
 		}
 
 		return nil
