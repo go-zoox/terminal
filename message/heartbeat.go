@@ -5,10 +5,10 @@ type HeartBeat struct {
 	Message string `json:"message"`
 }
 
-// func (m *Message) Exit() *Exit {
-// 	return m.exit
-// }
+func (m *Message) HeartBeat() *HeartBeat {
+	return m.heartbeat
+}
 
-// func (m *Message) SetExit(exit *Exit) {
-// 	m.exit = exit
-// }
+func (m *Message) SetHeartBeat(heartbeat *HeartBeat) {
+	m.heartbeat = heartbeat
+}
