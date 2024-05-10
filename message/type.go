@@ -26,6 +26,9 @@ const (
 
 	// Exit ...
 	TypeExit Type = '7'
+
+	// HeartBeat ...
+	TypeHeartBeat Type = '8'
 )
 
 func (m *Message) Type() Type {

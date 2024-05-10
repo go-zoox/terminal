@@ -8,12 +8,13 @@ type Message struct {
 	typ Type
 
 	//
-	key     Key
-	connect *Connect
-	resize  *Resize
-	auth    *Auth
-	output  Output
-	exit    *Exit
+	key       Key
+	connect   *Connect
+	resize    *Resize
+	auth      *Auth
+	output    Output
+	exit      *Exit
+	heartbeat *HeartBeat
 }
 
 func (m *Message) data() []byte {
@@ -54,6 +55,12 @@ func (m *Message) Serialize() error {
 			return err
 		}
 		m.msg = append([]byte{byte(m.typ)}, exit...)
+	case TypeHeartBeat:
+		heartBeat, err := json.Marshal(m.heartbeat)
+		if err != nil {
+			return err
+		}
+		m.msg = append([]byte{byte(m.typ)}, heartBeat...)
 	}
 
 	return nil
@@ -96,6 +103,13 @@ func Deserialize(rawMsg []byte) (msg *Message, err error) {
 			return
 		}
 		msg.exit = exit
+	case TypeHeartBeat:
+		heartbeat := &HeartBeat{}
+		err = json.Unmarshal(msg.data(), heartbeat)
+		if err != nil {
+			return
+		}
+		msg.heartbeat = heartbeat
 	}
 
 	return
