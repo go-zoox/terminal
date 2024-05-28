@@ -8,6 +8,7 @@ import (
 	"github.com/go-zoox/command/config"
 	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/command/terminal"
+	"github.com/go-zoox/core-utils/strings"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
 	"github.com/go-zoox/websocket"
@@ -73,7 +74,12 @@ func connect(ctx context.Context, conn websocket.Conn, cfg *ConnectConfig) (sess
 
 				conn.WriteBinaryMessage(msg.Msg())
 			} else {
-				logger.Errorf("failed to wait session: %s", err)
+				// ignore signal error, like signal: killed
+				if strings.Contains(err.Error(), "signal: killed") {
+					//
+				} else {
+					logger.Errorf("failed to wait session: %s", err)
+				}
 			}
 		}
 	}()

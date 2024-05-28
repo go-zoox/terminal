@@ -70,15 +70,13 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	// 	}
 	// }
 
-	server.OnConnect(func(conn conn.Conn) error {
+	server.Use(func(conn conn.Conn, next func(err error)) {
 		closeCh := make(chan struct{})
-		conn.OnClose(func(code int, message string) error {
-			closeCh <- struct{}{}
-			return nil
-		})
 
 		// heartbeat send
 		go func() {
+			logger.Infof("[ID: %s][heartbeat] created", conn.ID())
+
 			for {
 				select {
 				// @TODO
@@ -94,12 +92,18 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 					conn.WriteBinaryMessage(msg.Msg())
 				case <-closeCh:
-					logger.Infof("[ID: %s][heartbeat] cannel when close", conn.ID())
+					logger.Infof("[ID: %s][heartbeat] destroyed", conn.ID())
 					return
 				}
 			}
 		}()
 
+		next(nil)
+
+		closeCh <- struct{}{}
+	})
+
+	server.OnConnect(func(conn conn.Conn) error {
 		return nil
 	})
 
