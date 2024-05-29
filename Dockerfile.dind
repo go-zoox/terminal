@@ -1,5 +1,5 @@
 # Builder
-FROM whatwewant/builder-go:v1.20-1 as builder
+FROM whatwewant/builder-go:v1.22-1 as builder
 
 WORKDIR /build
 
