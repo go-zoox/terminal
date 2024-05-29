@@ -10,7 +10,7 @@ require (
 	github.com/go-zoox/fs v1.3.14
 	github.com/go-zoox/logger v1.5.1
 	github.com/go-zoox/safe v1.0.1
-	github.com/go-zoox/websocket v1.2.0
+	github.com/go-zoox/websocket v1.2.2
 	github.com/go-zoox/zoox v1.15.0
 	golang.org/x/term v0.19.0
 )

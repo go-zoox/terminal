@@ -70,7 +70,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	// 	}
 	// }
 
-	server.Use(func(conn conn.Conn, next func(err error)) {
+	server.Use(func(conn conn.Conn, next func()) {
 		closeCh := make(chan struct{})
 
 		// heartbeat send
@@ -98,7 +98,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			}
 		}()
 
-		next(nil)
+		next()
 
 		closeCh <- struct{}{}
 	})
