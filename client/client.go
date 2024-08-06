@@ -14,6 +14,7 @@ import (
 	"github.com/go-zoox/safe"
 	"github.com/go-zoox/terminal/message"
 	"github.com/go-zoox/websocket"
+	"github.com/go-zoox/websocket/conn"
 	"golang.org/x/term"
 )
 
@@ -96,31 +97,46 @@ func (c *client) Connect() error {
 	}
 	logger.Debugf("connecting to %s", u.String())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	headers := http.Header{}
 	if c.cfg.Username != "" && c.cfg.Password != "" {
 		headers.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(c.cfg.Username+":"+c.cfg.Password))))
 	}
 
 	wc, err := websocket.NewClient(func(opt *websocket.ClientOption) {
-		opt.Context = ctx
+		opt.Context = context.Background()
 		opt.Addr = u.String()
 		opt.Headers = headers
+		opt.ConnectTimeout = 10 * time.Second
 	})
 	if err != nil {
-		cancel()
 		return err
 	}
 
 	connectCh := make(chan struct{})
 
-	wc.OnConnect(func(conn websocket.Conn) error {
-		cancel()
+	wc.OnClose(func(conn conn.Conn, code int, message string) error {
+		c.exitCh <- &ExitError{
+			Code:    code,
+			Message: "terminal connection closed",
+		}
+		return nil
+	})
 
-		// close
+	wc.OnConnect(func(conn websocket.Conn) error {
 		go func() {
-			<-c.closeCh
-			conn.Close()
+			for {
+				select {
+				case <-c.closeCh:
+					close(c.messageCh)
+					conn.Close()
+					return
+				case msg := <-c.messageCh:
+					if err := conn.WriteTextMessage(msg); err != nil {
+						logger.Errorf("failed to write message: %s", err)
+						return
+					}
+				}
+			}
 		}()
 
 		if c.cfg.Image != "" {
@@ -143,23 +159,16 @@ func (c *client) Connect() error {
 			Username: c.cfg.Username,
 			Password: c.cfg.Password,
 		})
-
 		if err := msg.Serialize(); err != nil {
 			return err
 		}
 
-		if err := conn.WriteTextMessage(msg.Msg()); err != nil {
-			return err
-		}
+		// if err := conn.WriteTextMessage(msg.Msg()); err != nil {
+		// 	return err
+		// }
+		c.messageCh <- msg.Msg()
 
-		for {
-			select {
-			case msg := <-c.messageCh:
-				if err := conn.WriteTextMessage(msg); err != nil {
-					return err
-				}
-			}
-		}
+		return nil
 	})
 
 	wc.OnBinaryMessage(func(conn websocket.Conn, rawMsg []byte) error {
@@ -182,10 +191,7 @@ func (c *client) Connect() error {
 				return nil
 			}
 
-			if err := conn.WriteBinaryMessage(msg.Msg()); err != nil {
-				c.stderr.Write([]byte(fmt.Sprintf("failed to write message: %s\n", err)))
-				return nil
-			}
+			c.messageCh <- msg.Msg()
 		case message.TypeExit:
 			data := msg.Exit()
 
@@ -209,6 +215,8 @@ func (c *client) Connect() error {
 
 	// wait for connect
 	<-connectCh
+
+	logger.Debugf("connected to %s", u.String())
 
 	return nil
 }
@@ -256,6 +264,8 @@ func (c *client) Send(key []byte) error {
 }
 
 func (c *client) OnExit(cb func(code int, message string)) {
-	exitErr := <-c.exitCh
-	cb(exitErr.Code, exitErr.Message)
+	go func() {
+		exitErr := <-c.exitCh
+		cb(exitErr.Code, exitErr.Message)
+	}()
 }

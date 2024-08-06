@@ -147,6 +147,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 			if err := c.Connect(); err != nil {
 				return err
 			}
+			defer c.Close()
 
 			// resize
 			if err := c.Resize(); err != nil {
@@ -171,9 +172,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 			if err := keyboard.Open(); err != nil {
 				return err
 			}
-			defer func() {
-				_ = keyboard.Close()
-			}()
+			defer keyboard.Close()
 
 			for {
 				char, key, err := keyboard.GetKey()
