@@ -117,6 +117,13 @@ func Deserialize(rawMsg []byte) (msg *Message, err error) {
 			return
 		}
 		msg.heartbeat = heartbeat
+	case TypeError:
+		errx := &Error{}
+		err = json.Unmarshal(msg.data(), errx)
+		if err != nil {
+			return
+		}
+		msg.err = errx
 	}
 
 	return

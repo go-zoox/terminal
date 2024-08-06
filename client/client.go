@@ -174,6 +174,18 @@ func (c *client) Connect() error {
 			connectCh <- struct{}{}
 		case message.TypeOutput:
 			c.stdout.Write(msg.Output())
+		case message.TypeHeartBeat:
+			msg := &message.Message{}
+			msg.SetType(message.TypeHeartBeat)
+			if err := msg.Serialize(); err != nil {
+				c.stderr.Write([]byte(fmt.Sprintf("failed to serialize message: %s\n", err)))
+				return nil
+			}
+
+			if err := conn.WriteBinaryMessage(msg.Msg()); err != nil {
+				c.stderr.Write([]byte(fmt.Sprintf("failed to write message: %s\n", err)))
+				return nil
+			}
 		case message.TypeExit:
 			data := msg.Exit()
 
@@ -181,6 +193,9 @@ func (c *client) Connect() error {
 				Code:    data.Code,
 				Message: data.Message,
 			}
+		case message.TypeError:
+			data := msg.Error()
+			c.stderr.Write([]byte(fmt.Sprintf("error: %s\n", data.Message)))
 		default:
 			c.stderr.Write([]byte(fmt.Sprintf("unknown message type: %v\n", msg.Type())))
 		}
