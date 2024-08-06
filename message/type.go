@@ -29,6 +29,9 @@ const (
 
 	// HeartBeat ...
 	TypeHeartBeat Type = '8'
+
+	// Error ...
+	TypeError Type = '9'
 )
 
 func (m *Message) Type() Type {

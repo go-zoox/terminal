@@ -15,6 +15,7 @@ type Message struct {
 	output    Output
 	exit      *Exit
 	heartbeat *HeartBeat
+	err       *Error
 }
 
 func (m *Message) data() []byte {
@@ -61,6 +62,12 @@ func (m *Message) Serialize() error {
 			return err
 		}
 		m.msg = append([]byte{byte(m.typ)}, heartBeat...)
+	case TypeError:
+		errx, err := json.Marshal(m.err)
+		if err != nil {
+			return err
+		}
+		m.msg = append([]byte{byte(m.typ)}, errx...)
 	}
 
 	return nil
