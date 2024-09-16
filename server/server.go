@@ -75,13 +75,13 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 		// heartbeat send
 		go func() {
-			logger.Infof("[ID: %s][heartbeat] created", conn.ID())
+			logger.Debugf("[ID: %s][heartbeat] created", conn.ID())
 
 			for {
 				select {
 				// @TODO
 				case <-time.After(13 * time.Second):
-					logger.Infof("[ID: %s][heartbeat] send ...", conn.ID())
+					logger.Debugf("[ID: %s][heartbeat] send ...", conn.ID())
 
 					msg := &message.Message{}
 					msg.SetType(message.TypeHeartBeat)
@@ -92,7 +92,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 					conn.WriteBinaryMessage(msg.Msg())
 				case <-closeCh:
-					logger.Infof("[ID: %s][heartbeat] destroyed", conn.ID())
+					logger.Debugf("[ID: %s][heartbeat] destroyed", conn.ID())
 					return
 				}
 			}
@@ -153,6 +153,8 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			// @TODO
 			withQuery(&zoox.Context{Request: conn.Request()}, connectCfg)
 
+			logger.Debugf("connect cfg: %v", connectCfg)
+
 			session, err := connect(conn.Context(), conn, connectCfg)
 			if err != nil {
 				logger.Errorf("[ID: %s] failed to connect: %s", conn.ID(), err)
@@ -209,7 +211,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 				logger.Errorf("ID: %s] Failed to resize terminal: %s", conn.ID(), err)
 			}
 		case message.TypeHeartBeat:
-			logger.Infof("[ID: %s][heartbeat] receive ...", conn.ID())
+			logger.Debugf("[ID: %s][heartbeat] receive ...", conn.ID())
 		default:
 			logger.Errorf("ID: %s] Unknown message type: %d", conn.ID(), msg.Type())
 		}
@@ -230,31 +232,31 @@ func withQuery(ctx *zoox.Context, cfg *ConnectConfig) {
 		cfg.InitCommand = ctx.Query().Get("init_command").String()
 	}
 
-	if !cfg.ReadOnly && ctx.Query().Get("read_only").Bool() {
-		cfg.ReadOnly = ctx.Query().Get("read_only").Bool()
+	if v := ctx.Query().Get("read_only").Bool(); !cfg.ReadOnly && v {
+		cfg.ReadOnly = v
 	}
 
-	if cfg.Shell == "" && ctx.Query().Get("shell").String() != "" {
-		cfg.Shell = ctx.Query().Get("shell").String()
+	if v := ctx.Query().Get("shell").String(); cfg.Shell == "" && v != "" {
+		cfg.Shell = v
 	}
 
-	if cfg.Driver == "" && ctx.Query().Get("driver").String() != "" {
-		cfg.Driver = ctx.Query().Get("driver").String()
+	if v := ctx.Query().Get("driver").String(); cfg.Driver == "" && v != "" {
+		cfg.Driver = v
 	}
 
-	if cfg.WorkDir == "" && ctx.Query().Get("workdir").String() != "" {
-		cfg.WorkDir = ctx.Query().Get("workdir").String()
+	if v := ctx.Query().Get("workdir").String(); cfg.WorkDir == "" && v != "" {
+		cfg.WorkDir = v
 	}
 
-	if cfg.User == "" && ctx.Query().Get("user").String() != "" {
-		cfg.User = ctx.Query().Get("user").String()
+	if v := ctx.Query().Get("user").String(); cfg.User == "" && v != "" {
+		cfg.User = v
 	}
 
-	if cfg.Image == "" && ctx.Query().Get("image").String() != "" {
-		cfg.Image = ctx.Query().Get("image").String()
+	if v := ctx.Query().Get("image").String(); cfg.Image == "" && v != "" {
+		cfg.Image = v
 	}
 
-	if environments, err := ctx.Request.URL.Query()["environment"]; err {
+	if environments, ok := ctx.Request.URL.Query()["environment"]; ok {
 		if cfg.Environment == nil {
 			cfg.Environment = make(map[string]string)
 		}
@@ -270,7 +272,7 @@ func withQuery(ctx *zoox.Context, cfg *ConnectConfig) {
 		}
 	}
 
-	if !cfg.WaitUntilFinished && ctx.Query().Get("wait_until_finished").Bool() {
-		cfg.WaitUntilFinished = ctx.Query().Get("wait_until_finished").Bool()
+	if v := ctx.Query().Get("wait_until_finished").Bool(); !cfg.WaitUntilFinished && v {
+		cfg.WaitUntilFinished = v
 	}
 }
