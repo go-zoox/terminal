@@ -1,17 +1,17 @@
 package commands
 
 import (
-	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
-	"github.com/eiannone/keyboard"
 	"github.com/go-zoox/cli"
 	"github.com/go-zoox/fs"
 	"github.com/go-zoox/terminal/client"
+
+	gio "github.com/go-zoox/core-utils/io"
 )
 
 func RegistryClient(app *cli.MultipleProgram) {
@@ -154,103 +154,45 @@ func RegistryClient(app *cli.MultipleProgram) {
 				return err
 			}
 
-			// 监听操作系统信号
-			sigWinch := make(chan os.Signal, 1)
-			signal.Notify(sigWinch, syscall.SIGWINCH)
-			// 启动循环来检测终端窗口大小是否发生变化
 			go func() {
+				sigc := make(chan os.Signal, 1)
+				signal.Notify(sigc, syscall.SIGWINCH, syscall.SIGINT, syscall.SIGTERM)
 				for {
-					select {
-					case <-sigWinch:
+					s := <-sigc
+					switch s {
+					case syscall.SIGWINCH:
 						c.Resize()
-					default:
-						time.Sleep(time.Millisecond * 100)
+					case syscall.SIGINT, syscall.SIGTERM:
+						//
 					}
 				}
 			}()
 
-			if err := keyboard.Open(); err != nil {
+			// for {
+			// 	reader := bufio.NewReader(os.Stdin)
+			// 	str, err := reader.ReadString('\n')
+			// 	if err == io.EOF {
+			// 		return nil
+			// 	}
+
+			// 	fmt.Fprint(toStdin(c), str)
+			// }
+
+			if _, err := io.Copy(toStdin(c), os.Stdin); err != nil {
 				return err
 			}
-			defer keyboard.Close()
 
-			for {
-				char, key, err := keyboard.GetKey()
-				if err != nil {
-					return err
-				}
-
-				// fmt.Printf("You pressed: rune:%q, key %X\r\n", char, key)
-				if key == keyboard.KeyCtrlD {
-					break
-				}
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-				}
-
-				// key == 0 => char
-				if key == 0 {
-					err = c.Send([]byte{byte(char)})
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-					}
-				} else {
-					switch key {
-					case keyboard.KeyF1:
-						err = c.Send([]byte{0x1b, 0x4f, 0x50})
-					case keyboard.KeyF2:
-						err = c.Send([]byte{0x1b, 0x4f, 0x51})
-					case keyboard.KeyF3:
-						err = c.Send([]byte{0x1b, 0x4f, 0x52})
-					case keyboard.KeyF4:
-						err = c.Send([]byte{0x1b, 0x4f, 0x53})
-					case keyboard.KeyF5:
-						err = c.Send([]byte{0x1b, 0x5b, 0x31, 0x35, 0x7e})
-					case keyboard.KeyF6:
-						err = c.Send([]byte{0x1b, 0x5b, 0x31, 0x37, 0x7e})
-					case keyboard.KeyF7:
-						err = c.Send([]byte{0x1b, 0x5b, 0x31, 0x38, 0x7e})
-					case keyboard.KeyF8:
-						err = c.Send([]byte{0x1b, 0x5b, 0x31, 0x39, 0x7e})
-					case keyboard.KeyF9:
-						err = c.Send([]byte{0x1b, 0x5b, 0x32, 0x30, 0x7e})
-					case keyboard.KeyF10:
-						err = c.Send([]byte{0x1b, 0x5b, 0x32, 0x31, 0x7e})
-					case keyboard.KeyF11:
-						err = c.Send([]byte{0x1b, 0x5b, 0x32, 0x33, 0x7e})
-					case keyboard.KeyF12:
-						err = c.Send([]byte{0x1b, 0x5b, 0x32, 0x34, 0x7e})
-					case keyboard.KeyInsert:
-						err = c.Send([]byte{0x1b, 0x5b, 0x32, 0x7e})
-					case keyboard.KeyDelete:
-						err = c.Send([]byte{0x1b, 0x5b, 0x33, 0x7e})
-					case keyboard.KeyHome:
-						err = c.Send([]byte{0x1b, 0x5b, 0x48})
-					case keyboard.KeyEnd:
-						err = c.Send([]byte{0x1b, 0x5b, 0x46})
-					case keyboard.KeyPgup:
-						err = c.Send([]byte{0x1b, 0x5b, 0x35, 0x7e})
-					case keyboard.KeyPgdn:
-						err = c.Send([]byte{0x1b, 0x5b, 0x36, 0x7e})
-					case keyboard.KeyArrowUp:
-						err = c.Send([]byte{0x1b, 0x5b, 0x41})
-					case keyboard.KeyArrowDown:
-						err = c.Send([]byte{0x1b, 0x5b, 0x42})
-					case keyboard.KeyArrowRight:
-						err = c.Send([]byte{0x1b, 0x5b, 0x43})
-					case keyboard.KeyArrowLeft:
-						err = c.Send([]byte{0x1b, 0x5b, 0x44})
-					default:
-						err = c.Send([]byte{byte(key)})
-					}
-
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-					}
-				}
-			}
-
-			return
+			return nil
 		},
+	})
+}
+
+func toStdin(c client.Client) io.Writer {
+	return gio.WriterWrapFunc(func(p []byte) (n int, err error) {
+		if err := c.Send(p); err != nil {
+			return 0, err
+		}
+
+		return len(p), nil
 	})
 }
