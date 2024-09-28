@@ -97,8 +97,16 @@ func (c *client) Connect() error {
 	}
 	logger.Debugf("connecting to %s", u.String())
 
+	if u.User != nil {
+		c.cfg.Username = u.User.Username()
+		c.cfg.Password, _ = u.User.Password()
+
+		// @TODO fix malformed ws or wss URL
+		u.User = nil
+	}
+
 	headers := http.Header{}
-	if c.cfg.Username != "" && c.cfg.Password != "" {
+	if c.cfg.Username != "" || c.cfg.Password != "" {
 		headers.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(c.cfg.Username+":"+c.cfg.Password))))
 	}
 

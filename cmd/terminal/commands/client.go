@@ -20,7 +20,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "server",
-				Usage:    "server url",
+				Usage:    "server url, e.g. ws://10.0.0.1:8838/ws or wss://10.0.0.1:8838/ws or ws://username:password@10.0.0.1:8838/ws",
 				Aliases:  []string{"s"},
 				EnvVars:  []string{"SERVER"},
 				Required: true,
