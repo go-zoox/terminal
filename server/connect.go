@@ -6,9 +6,7 @@ import (
 
 	"github.com/go-zoox/command"
 	"github.com/go-zoox/command/config"
-	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/command/terminal"
-	"github.com/go-zoox/core-utils/strings"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
 	"github.com/go-zoox/websocket"
@@ -54,35 +52,6 @@ func connect(ctx context.Context, conn websocket.Conn, cfg *ConnectConfig) (sess
 	}
 
 	session, err = cmd.Terminal()
-
-	go func() {
-		if err := session.Wait(); err != nil {
-			if exitErr, ok := err.(*errors.ExitError); ok {
-				logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
-				// client.Write(websocket.BinaryMessage, []byte(exitErr.Error()))
-
-				msg := &message.Message{}
-				msg.SetType(message.TypeExit)
-				msg.SetExit(&message.Exit{
-					Code:    exitErr.ExitCode(),
-					Message: exitErr.Error(),
-				})
-				if err := msg.Serialize(); err != nil {
-					logger.Errorf("failed to serialize message: %s", err)
-					return
-				}
-
-				conn.WriteBinaryMessage(msg.Msg())
-			} else {
-				// ignore signal error, like signal: killed
-				if strings.Contains(err.Error(), "signal: killed") {
-					//
-				} else {
-					logger.Errorf("failed to wait session: %s", err)
-				}
-			}
-		}
-	}()
 
 	go func() {
 		buf := make([]byte, 1024)

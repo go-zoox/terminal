@@ -117,7 +117,7 @@ func (c *client) Connect() error {
 	wc.OnClose(func(conn conn.Conn, code int, message string) error {
 		c.exitCh <- &ExitError{
 			Code:    code,
-			Message: "terminal connection closed",
+			Message: "terminal connection closed\n",
 		}
 		return nil
 	})

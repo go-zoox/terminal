@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/command/terminal"
 	"github.com/go-zoox/logger"
 	"github.com/go-zoox/terminal/message"
@@ -15,22 +16,6 @@ import (
 
 type Server interface {
 	Serve() (server websocket.Server, err error)
-}
-
-type Config struct {
-	Shell    string
-	Username string
-	Password string
-	// Driver is the Driver runtime, options: host, docker, kubernetes, ssh, default: host
-	Driver      string
-	DriverImage string
-	//
-	InitCommand string
-	//
-	IsHistoryDisabled bool
-	//
-	ReadOnly bool
-	//
 }
 
 type server struct {
@@ -175,6 +160,54 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 				conn.Close()
 				return nil
 			}
+			go func() {
+				defer func() {
+					time.Sleep(1 * time.Second)
+					session.Close()
+					conn.Close()
+				}()
+
+				if err := session.Wait(); err != nil {
+					if exitErr, ok := err.(*errors.ExitError); ok {
+						logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
+						// client.Write(websocket.BinaryMessage, []byte(exitErr.Error()))
+
+						msg := &message.Message{}
+						msg.SetType(message.TypeExit)
+						msg.SetExit(&message.Exit{
+							Code:    exitErr.ExitCode(),
+							Message: exitErr.Error(),
+						})
+						if err := msg.Serialize(); err != nil {
+							logger.Errorf("failed to serialize message: %s", err)
+							return
+						}
+
+						conn.WriteBinaryMessage(msg.Msg())
+						return
+					} else {
+						// ignore signal error, like signal: killed
+						if strings.Contains(err.Error(), "signal: killed") {
+							//
+						} else {
+							logger.Errorf("wait session error: %s", err)
+						}
+					}
+				}
+
+				// logger.Infof("[session] exit status: %d", session.ExitCode())
+				msg := &message.Message{}
+				msg.SetType(message.TypeExit)
+				msg.SetExit(&message.Exit{
+					Code: session.ExitCode(),
+				})
+				if err := msg.Serialize(); err != nil {
+					logger.Errorf("failed to serialize message: %s", err)
+					return
+				}
+
+				conn.WriteBinaryMessage(msg.Msg())
+			}()
 
 			conn.Set("session", session)
 

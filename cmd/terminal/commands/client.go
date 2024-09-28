@@ -139,7 +139,7 @@ func RegistryClient(app *cli.MultipleProgram) {
 			})
 
 			c.OnExit(func(code int, message string) {
-				os.Stdout.Write([]byte(message + "\n"))
+				os.Stdout.Write([]byte(message))
 				os.Exit(code)
 			})
 

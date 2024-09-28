@@ -5,7 +5,6 @@ go 1.22.1
 require (
 	github.com/go-zoox/cli v1.4.0
 	github.com/go-zoox/command v1.6.3
-	github.com/go-zoox/core-utils v1.4.11
 	github.com/go-zoox/fs v1.3.15
 	github.com/go-zoox/logger v1.5.1
 	github.com/go-zoox/safe v1.2.0
@@ -42,6 +41,7 @@ require (
 	github.com/go-zoox/concurrency v1.2.0 // indirect
 	github.com/go-zoox/config v1.3.0 // indirect
 	github.com/go-zoox/cookie v1.2.0 // indirect
+	github.com/go-zoox/core-utils v1.4.11 // indirect
 	github.com/go-zoox/counter v1.2.1 // indirect
 	github.com/go-zoox/cron v1.2.2 // indirect
 	github.com/go-zoox/crypto v1.1.8 // indirect
