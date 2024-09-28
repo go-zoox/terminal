@@ -3,7 +3,6 @@ module github.com/go-zoox/terminal
 go 1.22.1
 
 require (
-	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/go-zoox/cli v1.4.0
 	github.com/go-zoox/command v1.6.3
 	github.com/go-zoox/core-utils v1.4.11
@@ -119,4 +118,4 @@ require (
 
 // replace github.com/go-zoox/websocket => ../websocket
 
-// replace github.com/go-zoox/eventemitter => ../eventemitter
+// replace github.com/go-zoox/command => ../command

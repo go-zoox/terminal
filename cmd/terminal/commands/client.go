@@ -10,8 +10,7 @@ import (
 	"github.com/go-zoox/cli"
 	"github.com/go-zoox/fs"
 	"github.com/go-zoox/terminal/client"
-
-	gio "github.com/go-zoox/core-utils/io"
+	"golang.org/x/term"
 )
 
 func RegistryClient(app *cli.MultipleProgram) {
@@ -156,43 +155,43 @@ func RegistryClient(app *cli.MultipleProgram) {
 
 			go func() {
 				sigc := make(chan os.Signal, 1)
-				signal.Notify(sigc, syscall.SIGWINCH, syscall.SIGINT, syscall.SIGTERM)
+				signal.Notify(sigc, syscall.SIGWINCH)
 				for {
 					s := <-sigc
 					switch s {
 					case syscall.SIGWINCH:
 						c.Resize()
-					case syscall.SIGINT, syscall.SIGTERM:
-						//
 					}
 				}
 			}()
 
-			// for {
-			// 	reader := bufio.NewReader(os.Stdin)
-			// 	str, err := reader.ReadString('\n')
-			// 	if err == io.EOF {
-			// 		return nil
-			// 	}
-
-			// 	fmt.Fprint(toStdin(c), str)
-			// }
-
-			if _, err := io.Copy(toStdin(c), os.Stdin); err != nil {
+			// switch stdin into 'raw' mode
+			oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+			if err != nil {
 				return err
+			}
+			defer term.Restore(int(os.Stdin.Fd()), oldState)
+
+			var b []byte = make([]byte, 1)
+			for {
+				_, err := os.Stdin.Read(b)
+				if err == io.EOF {
+					break
+				}
+
+				switch b[0] {
+				// case 3: // Ctrl+C
+				// 	return nil
+				case 4: // Ctrl+D
+					return nil
+				default:
+					if err := c.Send(b); err != nil {
+						return err
+					}
+				}
 			}
 
 			return nil
 		},
-	})
-}
-
-func toStdin(c client.Client) io.Writer {
-	return gio.WriterWrapFunc(func(p []byte) (n int, err error) {
-		if err := c.Send(p); err != nil {
-			return 0, err
-		}
-
-		return len(p), nil
 	})
 }
