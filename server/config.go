@@ -1,7 +1,9 @@
 package server
 
 type Config struct {
-	Shell    string
+	Shell string
+	User  string
+	//
 	Username string
 	Password string
 	// Driver is the Driver runtime, options: host, docker, kubernetes, ssh, default: host

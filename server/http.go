@@ -12,8 +12,11 @@ type HTTPServer interface {
 }
 
 type HTTPServerConfig struct {
-	Port     int64
-	Shell    string
+	Port int64
+	//
+	Shell string
+	User  string
+	//
 	Username string
 	Password string
 	// Driver is the Driver runtime, options: host, docker, kubernetes, ssh, default: host
@@ -73,6 +76,7 @@ func (s *httpServer) Run() error {
 	app.WebSocket(cfg.Path, func(opt *zoox.WebSocketOption) {
 		server, err := Serve(&Config{
 			Shell:             cfg.Shell,
+			User:              cfg.User,
 			Driver:            cfg.Driver,
 			DriverImage:       cfg.DriverImage,
 			InitCommand:       cfg.InitCommand,

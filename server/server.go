@@ -113,6 +113,9 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			if data.Shell == "" {
 				data.Shell = cfg.Shell
 			}
+			if data.User == "" {
+				data.User = cfg.User
+			}
 			if data.InitCommand == "" {
 				data.InitCommand = cfg.InitCommand
 			}
