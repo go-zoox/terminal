@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"io/fs"
+	"net/http"
 
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/defaults"
@@ -54,6 +56,12 @@ func (s *httpServer) Run() error {
 	cfg := s.cfg
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	app := defaults.Application()
+
+	subXterm, err := fs.Sub(xtermStatic, "static/xterm")
+	if err != nil {
+		return fmt.Errorf("load embedded xterm assets: %w", err)
+	}
+	app.StaticFS("/static/xterm", http.FS(subXterm))
 
 	if cfg.Username != "" && cfg.Password != "" {
 		app.Use(func(ctx *zoox.Context) {
