@@ -1,4 +1,4 @@
 package terminal
 
 // Version is the version of lighthouse
-var Version = "1.9.6"
+var Version = "1.10.0"
