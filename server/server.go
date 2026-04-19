@@ -216,11 +216,24 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	return
 }
 
-// runTerminalBridge streams PTY output to the WebSocket, then Wait()s and
-// sends TypeExit (including after write EOF so the child is still reaped).
+// bridgeWSConn is the subset of websocket.Conn used by the PTY bridge (tests provide a small mock).
+type bridgeWSConn interface {
+	WriteBinaryMessage(msg []byte) error
+	Close() error
+}
+
 func runTerminalBridge(conn websocket.Conn, session terminal.Terminal) {
+	runTerminalBridgeDelayed(conn, session, time.Second)
+}
+
+// runTerminalBridgeDelayed streams PTY output to the WebSocket, then Wait()s and
+// sends TypeExit (including after write EOF so the child is still reaped).
+// closeDelay matches production behavior before session.Close / conn.Close; use 0 in tests.
+func runTerminalBridgeDelayed(conn bridgeWSConn, session terminal.Terminal, closeDelay time.Duration) {
 	defer func() {
-		time.Sleep(1 * time.Second)
+		if closeDelay > 0 {
+			time.Sleep(closeDelay)
+		}
 		session.Close()
 		conn.Close()
 	}()
