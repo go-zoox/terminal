@@ -55,26 +55,8 @@ func (s *httpServer) Run() error {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	app := defaults.Application()
 
-	if cfg.Username != "" && cfg.Password != "" {
-		app.Use(func(ctx *zoox.Context) {
-			user, pass, ok := ctx.Request.BasicAuth()
-			if !ok {
-				ctx.Set("WWW-Authenticate", `Basic realm="go-zoox"`)
-				ctx.Status(401)
-				return
-			}
-
-			if !(user == cfg.Username && pass == cfg.Password) {
-				ctx.Status(401)
-				return
-			}
-
-			ctx.Next()
-		})
-	}
-
-	app.WebSocket(cfg.Path, func(opt *zoox.WebSocketOption) {
-		server, err := Serve(&Config{
+	app.Use(Middleware(MiddlewareOptions{
+		Config: &Config{
 			Shell:             cfg.Shell,
 			User:              cfg.User,
 			Driver:            cfg.Driver,
@@ -84,22 +66,12 @@ func (s *httpServer) Run() error {
 			Password:          cfg.Password,
 			IsHistoryDisabled: cfg.IsHistoryDisabled,
 			ReadOnly:          cfg.ReadOnly,
-		})
-		if err != nil {
-			panic(fmt.Errorf("failed to create websocket server: %s", err))
-		}
-
-		opt.Server = server
-	})
-
-	app.Get("/", func(ctx *zoox.Context) {
-		// Use Data, not HTML: zoox HTML() parses content with text/template; embedded
-		// xterm.js contains "{{" and breaks template parsing.
-		ctx.Data(200, "text/html; charset=utf-8", []byte(RenderXTerm(zoox.H{
-			"wsPath": cfg.Path,
-			// "welcomeMessage": "custom welcome message",
-		})))
-	})
+		},
+		PagePath: "/",
+		WSPath:   cfg.Path,
+		Username: cfg.Username,
+		Password: cfg.Password,
+	}))
 
 	app.Get("/hi", func(ctx *zoox.Context) {
 		ctx.String(200, "hi")
