@@ -247,6 +247,16 @@ func RenderXTerm(data zoox.H) string {
 				setTimeout(runFit, 500);
 			}
 
+			/* Reconnect with session_id: drop local scrollback before server replay (Output). */
+			function clearTerminalBeforeSessionReconnect() {
+				if (!term.element) {
+					return;
+				}
+				try {
+					term.clear();
+				} catch (e) {}
+			}
+
 			function scrollTermToBottomIfMobile() {
 				if (!scrollBottomOnFocus) {
 					return;
@@ -394,6 +404,7 @@ func RenderXTerm(data zoox.H) string {
 					}
 					var sessionID = session.get();
 					if (!!sessionID) {
+						clearTerminalBeforeSessionReconnect();
 						ws.send(messageType.Connect + JSON.stringify({ session_id: sessionID }));
 					} else {
 						ws.send(messageType.Connect);

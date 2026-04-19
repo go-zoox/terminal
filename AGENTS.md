@@ -30,6 +30,7 @@ Operational context for anyone changing the WebSocket PTY server, reconnect flow
 - **Mobile-style disconnect UI:** on **unclean** WebSocket close, show a **modal** (Chinese copy + **「重新连接」**) when **`useMobileDisconnectOverlay()`** is true at **that moment** (not only at page load): `(max-width: 768px)` **or** `(pointer: coarse)` **or** `(hover: none)`. This matches real phones/tablets and **Chrome DevTools device emulation** (often `pointer: fine` but narrow viewport / `hover: none`). Otherwise only the red “Connection Closed” line in xterm.
 - Reconnect closes the existing socket with code 1000 when needed, then opens a new WebSocket; **`sessionStorage`** still holds `session_id` so the server can restore the PTY when within idle TTL.
 - **Page Visibility:** when `document.visibilityState` becomes **`visible`** and the WebSocket is **`CLOSED`**, the page **automatically** calls `openWebSocket()` (short debounce). Hides the mobile disconnect modal if it was open.
+- **Reconnect UI:** when opening the socket with a stored **`session_id`** and xterm is already mounted, the client calls **`term.clear()`** before sending `Connect` so server replay does not stack on stale local scrollback.
 
 ## Verification
 
