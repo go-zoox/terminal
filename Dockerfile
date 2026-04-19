@@ -1,5 +1,5 @@
 # Builder
-FROM whatwewant/builder-go:v1.22-1 as builder
+FROM whatwewant/builder-go:v1.25-1 as builder
 
 WORKDIR /build
 
@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 \
   -v -o terminal ./cmd/terminal
 
 # Server
-FROM whatwewant/alpine:v3.17-1
+FROM whatwewant/alpine:v3-1
 
 LABEL MAINTAINER="Zero<tobewhatwewant@gmail.com>"
 
