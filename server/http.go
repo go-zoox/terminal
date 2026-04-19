@@ -2,8 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/fs"
-	"net/http"
 
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/defaults"
@@ -57,12 +55,6 @@ func (s *httpServer) Run() error {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	app := defaults.Application()
 
-	subXterm, err := fs.Sub(xtermStatic, "static/xterm")
-	if err != nil {
-		return fmt.Errorf("load embedded xterm assets: %w", err)
-	}
-	app.StaticFS("/static/xterm", http.FS(subXterm))
-
 	if cfg.Username != "" && cfg.Password != "" {
 		app.Use(func(ctx *zoox.Context) {
 			user, pass, ok := ctx.Request.BasicAuth()
@@ -101,10 +93,12 @@ func (s *httpServer) Run() error {
 	})
 
 	app.Get("/", func(ctx *zoox.Context) {
-		ctx.HTML(200, RenderXTerm(zoox.H{
+		// Use Data, not HTML: zoox HTML() parses content with text/template; embedded
+		// xterm.js contains "{{" and breaks template parsing.
+		ctx.Data(200, "text/html; charset=utf-8", []byte(RenderXTerm(zoox.H{
 			"wsPath": cfg.Path,
 			// "welcomeMessage": "custom welcome message",
-		}))
+		})))
 	})
 
 	app.Get("/hi", func(ctx *zoox.Context) {
