@@ -119,6 +119,8 @@ func RenderXTerm(data zoox.H) string {
 				document.querySelector('title').innerText = query.get('title');
 			}
 			var narrow = typeof matchMedia !== "undefined" && matchMedia("(max-width: 480px)").matches;
+			var coarsePointer = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
+			var scrollBottomOnFocus = narrow || coarsePointer;
 			var term = new Terminal({
 				fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 				fontWeight: 400,
@@ -133,6 +135,31 @@ func RenderXTerm(data zoox.H) string {
 			}
 			var fitAddon = new FitAddon.FitAddon();
 			term.loadAddon(fitAddon);
+
+			function scrollTermToBottomIfMobile() {
+				if (!scrollBottomOnFocus) {
+					return;
+				}
+				try {
+					term.scrollToBottom();
+				} catch (e) {}
+			}
+
+			function scrollIntoViewIfTyping() {
+				if (!scrollBottomOnFocus || !term.textarea || document.activeElement !== term.textarea) {
+					return;
+				}
+				requestAnimationFrame(function () {
+					requestAnimationFrame(function () {
+						try {
+							term.scrollToBottom();
+							if (term.textarea.scrollIntoView) {
+								term.textarea.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+							}
+						} catch (e) {}
+					});
+				});
+			}
 
 			var ws = new WebSocket(protocol + '://' + url.host + config.wsPath + window.location.search);
 			ws.binaryType = 'arraybuffer';
@@ -160,11 +187,22 @@ func RenderXTerm(data zoox.H) string {
 					term.open(document.getElementById('terminal'));
 					fitAddon.fit();
 
+					if (scrollBottomOnFocus && term.textarea) {
+						term.textarea.addEventListener("focus", function () {
+							scrollTermToBottomIfMobile();
+							scrollIntoViewIfTyping();
+						}, true);
+					}
+
 					if (!!config.welcomeMessage) {
 						term.write(config.welcomeMessage + " \r\n")
 					}
 
 					term.focus();
+					requestAnimationFrame(function () {
+						scrollTermToBottomIfMobile();
+						scrollIntoViewIfTyping();
+					});
 				} else if (typ === messageType.HeartBeat.charCodeAt(0)) {
 					ws.send(messageType.HeartBeat + 'null');
 				}
@@ -201,7 +239,10 @@ func RenderXTerm(data zoox.H) string {
 			}, false);
 
 			if (window.visualViewport) {
-				window.visualViewport.addEventListener("resize", scheduleRefitTerminal);
+				window.visualViewport.addEventListener("resize", function () {
+					scheduleRefitTerminal();
+					scrollIntoViewIfTyping();
+				});
 			}
 
 		</script>
