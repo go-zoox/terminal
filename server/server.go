@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -146,7 +147,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 			logger.Debugf("connect cfg: %v", connectCfg)
 
-			session, err := connect(conn.Context(), conn, connectCfg)
+			session, err := connect(conn.Context(), connectCfg)
 			if err != nil {
 				logger.Errorf("[ID: %s] failed to connect: %s", conn.ID(), err)
 
@@ -166,54 +167,8 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 				conn.Close()
 				return nil
 			}
-			go func() {
-				defer func() {
-					time.Sleep(1 * time.Second)
-					session.Close()
-					conn.Close()
-				}()
 
-				if err := session.Wait(); err != nil {
-					if exitErr, ok := err.(*errors.ExitError); ok {
-						logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
-						// client.Write(websocket.BinaryMessage, []byte(exitErr.Error()))
-
-						msg := &message.Message{}
-						msg.SetType(message.TypeExit)
-						msg.SetExit(&message.Exit{
-							Code:    exitErr.ExitCode(),
-							Message: exitErr.Error(),
-						})
-						if err := msg.Serialize(); err != nil {
-							logger.Errorf("failed to serialize message: %s", err)
-							return
-						}
-
-						conn.WriteBinaryMessage(msg.Msg())
-						return
-					} else {
-						// ignore signal error, like signal: killed
-						if strings.Contains(err.Error(), "signal: killed") {
-							//
-						} else {
-							logger.Errorf("wait session error: %s", err)
-						}
-					}
-				}
-
-				// logger.Infof("[session] exit status: %d", session.ExitCode())
-				msg := &message.Message{}
-				msg.SetType(message.TypeExit)
-				msg.SetExit(&message.Exit{
-					Code: session.ExitCode(),
-				})
-				if err := msg.Serialize(); err != nil {
-					logger.Errorf("failed to serialize message: %s", err)
-					return
-				}
-
-				conn.WriteBinaryMessage(msg.Msg())
-			}()
+			go runTerminalBridge(conn, session)
 
 			conn.Set("session", session)
 
@@ -259,6 +214,74 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	})
 
 	return
+}
+
+// runTerminalBridge streams PTY output to the WebSocket, then Wait()s and
+// sends TypeExit (including after write EOF so the child is still reaped).
+func runTerminalBridge(conn websocket.Conn, session terminal.Terminal) {
+	defer func() {
+		time.Sleep(1 * time.Second)
+		session.Close()
+		conn.Close()
+	}()
+
+	buf := make([]byte, 1024)
+readLoop:
+	for {
+		n, err := session.Read(buf)
+		if err != nil {
+			break
+		}
+
+		msg := &message.Message{}
+		msg.SetType(message.TypeOutput)
+		msg.SetOutput(buf[:n])
+		if err := msg.Serialize(); err != nil {
+			logger.Errorf("failed to serialize message: %s", err)
+			break readLoop
+		}
+
+		if err = conn.WriteBinaryMessage(msg.Msg()); err == io.EOF {
+			break readLoop
+		}
+	}
+
+	if err := session.Wait(); err != nil {
+		if exitErr, ok := err.(*errors.ExitError); ok {
+			logger.Errorf("[session] exit status: %d", exitErr.ExitCode())
+
+			msg := &message.Message{}
+			msg.SetType(message.TypeExit)
+			msg.SetExit(&message.Exit{
+				Code:    exitErr.ExitCode(),
+				Message: exitErr.Error(),
+			})
+			if err := msg.Serialize(); err != nil {
+				logger.Errorf("failed to serialize message: %s", err)
+				return
+			}
+
+			conn.WriteBinaryMessage(msg.Msg())
+			return
+		}
+		if strings.Contains(err.Error(), "signal: killed") {
+			//
+		} else {
+			logger.Errorf("wait session error: %s", err)
+		}
+	}
+
+	msg := &message.Message{}
+	msg.SetType(message.TypeExit)
+	msg.SetExit(&message.Exit{
+		Code: session.ExitCode(),
+	})
+	if err := msg.Serialize(); err != nil {
+		logger.Errorf("failed to serialize message: %s", err)
+		return
+	}
+
+	conn.WriteBinaryMessage(msg.Msg())
 }
 
 type Resize struct {
