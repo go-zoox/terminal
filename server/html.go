@@ -31,10 +31,15 @@ func RenderXTerm(data zoox.H) string {
 	b.Grow(len(xtermCSS) + len(xtermJS) + len(xtermAddonAttachJS) + len(xtermAddonFitJS) + 4096)
 
 	b.WriteString(`<!doctype html>
-<html>
+<html lang="en">
 	<head>
+		<meta charset="utf-8">
 		<title>Web Terminal</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+		<meta name="theme-color" content="#000000">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 		<style>`)
 	b.WriteString(xtermCSS)
 	b.WriteString(`</style>
@@ -45,14 +50,27 @@ func RenderXTerm(data zoox.H) string {
 				box-sizing: border-box;
 			}
 
+			html {
+				height: 100%;
+			}
+
 			body {
-				margin: 8px;
+				height: 100%;
+				min-height: 100vh;
+				min-height: 100dvh;
+				margin: 0;
+				padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 				background-color: #000;
+				overflow: hidden;
+				overscroll-behavior: none;
+				touch-action: manipulation;
+				-webkit-tap-highlight-color: transparent;
 			}
 
 			#terminal {
-				width: calc(100vw - 16px);
-				height: calc(100vh - 16px);
+				width: 100%;
+				height: 100%;
+				min-height: 0;
 			}
 		</style>
 	</head>
@@ -86,10 +104,11 @@ func RenderXTerm(data zoox.H) string {
 			if (query.get('title') && document.querySelector('title')) {
 				document.querySelector('title').innerText = query.get('title');
 			}
+			var narrow = typeof matchMedia !== "undefined" && matchMedia("(max-width: 480px)").matches;
 			var term = new Terminal({
 				fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 				fontWeight: 400,
-				fontSize: 14,
+				fontSize: narrow ? 12 : 14,
 			});
 			var fitAddon = new FitAddon.FitAddon();
 			term.loadAddon(fitAddon);
@@ -138,9 +157,22 @@ func RenderXTerm(data zoox.H) string {
 				ws.send(messageType.Key + data);
 			})
 
-			window.addEventListener("resize", () => {
-				fitAddon.fit()
+			function refitTerminal() {
+				try {
+					fitAddon.fit();
+				} catch (e) {}
+			}
+
+			window.addEventListener("resize", refitTerminal, false);
+			window.addEventListener("orientationchange", function () {
+				setTimeout(refitTerminal, 100);
+				setTimeout(refitTerminal, 350);
 			}, false);
+
+			if (window.visualViewport) {
+				window.visualViewport.addEventListener("resize", refitTerminal);
+				window.visualViewport.addEventListener("scroll", refitTerminal);
+			}
 
 		</script>
 	</body>
