@@ -26,6 +26,7 @@ type HTTPServerConfig struct {
 	Path string
 	//
 	InitCommand string
+	WorkDir     string
 	//
 	IsHistoryDisabled bool
 	//
@@ -62,6 +63,7 @@ func (s *httpServer) Run() error {
 			Driver:            cfg.Driver,
 			DriverImage:       cfg.DriverImage,
 			InitCommand:       cfg.InitCommand,
+			WorkDir:           cfg.WorkDir,
 			Username:          cfg.Username,
 			Password:          cfg.Password,
 			IsHistoryDisabled: cfg.IsHistoryDisabled,

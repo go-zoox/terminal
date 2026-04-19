@@ -11,6 +11,9 @@ type Config struct {
 	DriverImage string
 	//
 	InitCommand string
+	// WorkDir is the default working directory for new sessions when the client
+	// does not send one. Query string ?workdir= still overrides when set.
+	WorkDir string
 	//
 	IsHistoryDisabled bool
 	//

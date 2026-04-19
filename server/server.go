@@ -119,6 +119,9 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			if data.InitCommand == "" {
 				data.InitCommand = cfg.InitCommand
 			}
+			if data.WorkDir == "" {
+				data.WorkDir = cfg.WorkDir
+			}
 			if data.Image == "" {
 				data.Image = cfg.DriverImage
 			}

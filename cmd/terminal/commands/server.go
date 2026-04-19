@@ -29,6 +29,18 @@ func RegistryServer(app *cli.MultipleProgram) {
 				EnvVars: []string{"GO_ZOOX_TERMINAL_INIT_COMMAND"},
 			},
 			&cli.StringFlag{
+				Name:    "workdir",
+				Usage:   "default terminal working directory for browser sessions",
+				Aliases: []string{"w"},
+				EnvVars: []string{"GO_ZOOX_TERMINAL_WORKDIR", "WORKDIR"},
+			},
+			&cli.StringFlag{
+				Name:    "user",
+				Usage:   "default OS/container user for PTY sessions (not Basic Auth)",
+				Aliases: []string{"u"},
+				EnvVars: []string{"GO_ZOOX_TERMINAL_USER"},
+			},
+			&cli.StringFlag{
 				Name:    "username",
 				Usage:   "Username for Basic Auth",
 				EnvVars: []string{"GO_ZOOX_TERMINAL_USERNAME"},
@@ -66,6 +78,7 @@ func RegistryServer(app *cli.MultipleProgram) {
 			s := server.NewHTTPServer(&server.HTTPServerConfig{
 				Port:     ctx.Int64("port"),
 				Shell:    ctx.String("shell"),
+				User:     ctx.String("user"),
 				Username: ctx.String("username"),
 				Password: ctx.String("password"),
 				//
@@ -73,6 +86,7 @@ func RegistryServer(app *cli.MultipleProgram) {
 				DriverImage: ctx.String("driver-image"),
 				//
 				InitCommand: ctx.String("init-command"),
+				WorkDir:     ctx.String("workdir"),
 				//
 				IsHistoryDisabled: ctx.Bool("disable-history"),
 				//
