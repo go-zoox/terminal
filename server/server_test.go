@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/go-zoox/command/errors"
 	"github.com/go-zoox/terminal/message"
@@ -161,6 +162,68 @@ func TestRunTerminalBridgeDelayed_exitError(t *testing.T) {
 	ex, err := message.Deserialize(conn.writes[1])
 	if err != nil || ex.Exit().Code != 42 || ex.Exit().Message != "command failed" {
 		t.Fatalf("exit: err=%v %#v", err, ex.Exit())
+	}
+}
+
+func TestSessionRegistry_registerAndGet(t *testing.T) {
+	t.Parallel()
+
+	reg := newSessionRegistry(SessionRegistryConfig{TTL: time.Hour})
+	sess := &mockTerminal{}
+	id := reg.registerSessionOnly(sess)
+	if id == "" {
+		t.Fatal("registerSessionOnly returned empty id")
+	}
+	if reg.Get("") != nil {
+		t.Fatal("Get empty id should be nil")
+	}
+	if reg.Get("not-there") != nil {
+		t.Fatal("Get missing id should be nil")
+	}
+	if got := reg.Get(id); got != sess {
+		t.Fatalf("Get(%q) = %v, want same session", id, got)
+	}
+}
+
+func TestSessionRegistry_expires(t *testing.T) {
+	t.Parallel()
+
+	reg := newSessionRegistry(SessionRegistryConfig{TTL: 30 * time.Millisecond})
+	sess := &mockTerminal{}
+	id := reg.registerSessionOnly(sess)
+	reg.noteDisconnected(id)
+	time.Sleep(80 * time.Millisecond)
+	if reg.Get(id) != nil {
+		t.Fatal("expected session expired after idle deadline")
+	}
+	if reg.Get(id) != nil {
+		t.Fatal("expected still expired after second Get")
+	}
+}
+
+func TestSessionRegistry_bindRoutesOutputToNewConn(t *testing.T) {
+	t.Parallel()
+
+	reg := newSessionRegistry(SessionRegistryConfig{TTL: time.Hour})
+	sess := &mockTerminal{
+		chunks: [][]byte{[]byte("hello")},
+	}
+	c1 := &mockBridgeConn{}
+	c2 := &mockBridgeConn{}
+	id := reg.Register(sess)
+	if !reg.AttachWriter(id, c1) {
+		t.Fatal("AttachWriter c1 failed")
+	}
+	if _, ok := reg.LookupSession(id); !ok {
+		t.Fatal("LookupSession failed")
+	}
+	if !reg.AttachWriter(id, c2) {
+		t.Fatal("AttachWriter c2 failed")
+	}
+	// Pump reads one chunk; may write to c1 or c2 depending on scheduling — at least one conn gets output.
+	time.Sleep(50 * time.Millisecond)
+	if len(c1.writes)+len(c2.writes) < 1 {
+		t.Fatal("expected PTY output on a bound WebSocket")
 	}
 }
 

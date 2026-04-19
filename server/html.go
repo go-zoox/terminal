@@ -105,15 +105,31 @@ func RenderXTerm(data zoox.H) string {
 				Key: '1',
 				Resize: '2',
 				Output: '6',
+				Exit: '7',
 				HeartBeat: '8',
 			};
 			var config = `)
 	b.Write(jd)
 	b.WriteString(`;
-
 			var url = new URL(window.location.href);
 			var query = new URLSearchParams(url.search);
 			var protocol = url.protocol === 'https:' ? 'wss' : 'ws';
+
+			var session = (function () {
+				var key = 'go-zoox-terminal-session-id';
+
+				return {
+					get: function () {
+						return sessionStorage.getItem(key);
+					},
+					set: function (value) {
+						sessionStorage.setItem(key, value);
+					},
+					remove: function () {
+						sessionStorage.removeItem(key);
+					},
+				};
+			})();
 
 			if (query.get('title') && document.querySelector('title')) {
 				document.querySelector('title').innerText = query.get('title');
@@ -161,41 +177,93 @@ func RenderXTerm(data zoox.H) string {
 				});
 			}
 
+			var handshakeComplete = false;
+
 			var ws = new WebSocket(protocol + '://' + url.host + config.wsPath + window.location.search);
 			ws.binaryType = 'arraybuffer';
-			ws.onclose = () => {
-				term.write('\r\n\x1b[31mConnection Closed.\x1b[m\r\n');
-			};
-			ws.onopen = () => {
-				ws.send(messageType.Connect);
-			}
-			window._data = [];
-			ws.onmessage = evt => {
-				var rawMsg = evt.data;
-				if (!(rawMsg instanceof ArrayBuffer)) {
-					console.error('unknown message type, need ArrayBuffer', rawMsg);
+			ws.onclose = function (ev) {
+				handshakeComplete = false;
+				// wasClean: normal close (e.g. tab navigation). Unclean: network or server error.
+				if (ev && ev.wasClean) {
 					return;
 				}
+				try {
+					if (term.element) {
+						term.write('\r\n\x1b[31mConnection Closed.\x1b[m\r\n');
+					}
+				} catch (e) {}
+			};
+			ws.onopen = function () {
+				var sessionID = session.get();
+				if (!!sessionID) {
+					ws.send(messageType.Connect + JSON.stringify({ session_id: sessionID }));
+				} else {
+					ws.send(messageType.Connect);
+				}
+			}
+			window._data = [];
+			// Serialize inbound processing: Blob uses async arrayBuffer(); without chaining, later
+			// ArrayBuffer frames (e.g. Output) can run before Connect and break handshake/order.
+			var inboundChain = Promise.resolve();
+			function queueInboundFrame(rawMsg) {
+				var p;
+				if (rawMsg instanceof Blob) {
+					p = rawMsg.arrayBuffer();
+				} else if (rawMsg instanceof ArrayBuffer) {
+					p = Promise.resolve(rawMsg);
+				} else {
+					console.error('unknown WebSocket frame payload type', typeof rawMsg, rawMsg);
+					return;
+				}
+				inboundChain = inboundChain.then(function () {
+					return p;
+				}).then(function (buf) {
+					dispatchBinaryFrame(new Uint8Array(buf));
+				}).catch(function (e) {
+					console.error('failed to process ws frame', e);
+				});
+			}
+			ws.onmessage = function (evt) {
+				queueInboundFrame(evt.data);
+			};
 
-				var buffer = new Uint8Array(rawMsg);
+			function dispatchBinaryFrame(buffer) {
 				var typ = buffer[0];
 				var payload = buffer.slice(1);
 
 				if (typ === messageType.Output.charCodeAt(0)) {
+					if (!term.element) {
+						return;
+					}
 					term.write(payload);
 				} else if (typ === messageType.Connect.charCodeAt(0)) {
-					term.open(document.getElementById('terminal'));
-					fitAddon.fit();
+					if (!term.element) {
+						term.open(document.getElementById('terminal'));
+						handshakeComplete = true;
+						fitAddon.fit();
 
-					if (scrollBottomOnFocus && term.textarea) {
-						term.textarea.addEventListener("focus", function () {
-							scrollTermToBottomIfMobile();
-							scrollIntoViewIfTyping();
-						}, true);
+						if (scrollBottomOnFocus && term.textarea) {
+							term.textarea.addEventListener("focus", function () {
+								scrollTermToBottomIfMobile();
+								scrollIntoViewIfTyping();
+							}, true);
+						}
+
+						if (!!config.welcomeMessage) {
+							term.write(config.welcomeMessage + " \r\n")
+						}
+					} else {
+						handshakeComplete = true;
+						fitAddon.fit();
 					}
 
-					if (!!config.welcomeMessage) {
-						term.write(config.welcomeMessage + " \r\n")
+					try {
+						var data = JSON.parse(String.fromCharCode.apply(null, payload));
+						if (data && data.session_id) {
+							session.set(data.session_id);
+						}
+					} catch (e) {
+						console.error('failed to parse connect data:', e)
 					}
 
 					term.focus();
@@ -203,21 +271,38 @@ func RenderXTerm(data zoox.H) string {
 						scrollTermToBottomIfMobile();
 						scrollIntoViewIfTyping();
 					});
+				} else if (typ === messageType.Exit.charCodeAt(0)) {
+					handshakeComplete = false;
+					try {
+						var ex = JSON.parse(String.fromCharCode.apply(null, payload));
+						console.warn('terminal session exit', ex);
+					} catch (e) {}
 				} else if (typ === messageType.HeartBeat.charCodeAt(0)) {
-					ws.send(messageType.HeartBeat + 'null');
+					if (ws.readyState === WebSocket.OPEN) {
+						ws.send(messageType.HeartBeat + 'null');
+					}
 				}
-			};
+			}
 
 			term.onResize(({ cols, rows }) => {
+				if (!handshakeComplete || ws.readyState !== WebSocket.OPEN) {
+					return;
+				}
 				ws.send(messageType.Resize + JSON.stringify({ cols, rows }));
 			});
 
 			term.onData((data) => {
+				if (!handshakeComplete || ws.readyState !== WebSocket.OPEN) {
+					return;
+				}
 				ws.send(messageType.Key + data);
 			})
 
 			var refitRaf = 0;
 			function refitTerminal() {
+				if (!handshakeComplete || !term.element) {
+					return;
+				}
 				try {
 					fitAddon.fit();
 				} catch (e) {}

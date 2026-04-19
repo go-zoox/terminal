@@ -25,13 +25,15 @@ type ConnectConfig struct {
 	WaitUntilFinished bool
 }
 
-func connect(ctx context.Context, cfg *ConnectConfig) (session terminal.Terminal, err error) {
-	if cfg.WaitUntilFinished {
-		ctx = context.Background()
-	}
+func connect(cfg *ConnectConfig) (session terminal.Terminal, err error) {
+	// command.New attaches a goroutine: when cfg.Context is done, it calls eg.Cancel().
+	// conn.Context() from the WebSocket upgrade is canceled as soon as the browser disconnects
+	// (refresh, tab close), which tears down the PTY and breaks session reconnect — the user
+	// then sees TypeExit (e.g. code -1) right after resize or any later message.
+	// Run the engine under a detached context; cleanup is session.Close, pump exit, and registry TTL.
 
 	cmd, err := command.New(&config.Config{
-		Context: ctx,
+		Context: context.Background(),
 		//
 		Engine:            cfg.Driver,
 		Command:           cfg.InitCommand,

@@ -13,6 +13,8 @@ type Connect struct {
 	//
 	Username string `json:"username"`
 	Password string `json:"password"`
+	//
+	SessionID string `json:"session_id"`
 }
 
 func (m *Message) Connect() *Connect {

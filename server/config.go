@@ -1,5 +1,7 @@
 package server
 
+import "time"
+
 type Config struct {
 	Shell string
 	User  string
@@ -19,4 +21,8 @@ type Config struct {
 	//
 	ReadOnly bool
 	//
+	// SessionIdleRetention is how long a PTY session remains after the WebSocket
+	// disconnects, allowing reconnect before eviction. Zero means use the default
+	// (60 seconds) in Serve.
+	SessionIdleRetention time.Duration
 }

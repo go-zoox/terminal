@@ -34,6 +34,14 @@ func (s *server) Serve() (server websocket.Server, err error) {
 }
 
 func Serve(cfg *Config) (server websocket.Server, err error) {
+	idleRetention := cfg.SessionIdleRetention
+	if idleRetention == 0 {
+		idleRetention = 60 * time.Second
+	}
+	sessions := newSessionRegistry(SessionRegistryConfig{
+		TTL: idleRetention,
+	})
+
 	server, err = websocket.NewServer()
 	if err != nil {
 		return nil, err
@@ -94,11 +102,18 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 	})
 
 	server.OnClose(func(conn conn.Conn, code int, message string) error {
-		logger.Infof("[ID: %s][close] code: %d, message: %s", conn.ID(), code, message)
+		if sid := conn.Get("terminal_session_id"); sid != nil {
+			if id, ok := sid.(string); ok {
+				logger.Infof("[ID: %s] WebSocket closed (session_id=%s, code=%d, message=%s)", conn.ID(), id, code, message)
+				sessions.noteDisconnected(id)
+				return nil
+			}
+		}
+		logger.Infof("[ID: %s] WebSocket closed (code=%d, message=%s)", conn.ID(), code, message)
 		return nil
 	})
 
-	server.OnTextMessage(func(conn websocket.Conn, rawMsg []byte) error {
+	handleTerminalText := func(conn websocket.Conn, rawMsg []byte) error {
 		msg, err := message.Deserialize(rawMsg)
 		if err != nil {
 			logger.Errorf("[ID: %s] Failed to deserialize message: %s", conn.ID(), err)
@@ -108,6 +123,28 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 		switch msg.Type() {
 		case message.TypeConnect:
 			data := msg.Connect()
+			if data.SessionID != "" {
+				if session, ok := sessions.LookupSession(data.SessionID); ok {
+					conn.Set("session", session)
+					conn.Set("terminal_session_id", data.SessionID)
+
+					msg := &message.Message{}
+					msg.SetType(message.TypeConnect)
+					msg.SetConnect(&message.Connect{SessionID: data.SessionID})
+					if err := msg.Serialize(); err != nil {
+						logger.Errorf("ID: %s] failed to serialize message: %s", conn.ID(), err)
+						return nil
+					}
+					conn.WriteBinaryMessage(msg.Msg())
+					if err := sessions.WriteSessionReplay(data.SessionID, conn); err != nil {
+						logger.Errorf("[ID: %s] session replay: %s", conn.ID(), err)
+					}
+					sessions.AttachWriter(data.SessionID, conn)
+					logger.Infof("[session %s] WebSocket reconnected: session restored, idle eviction timer reset [conn %s]", data.SessionID, conn.ID())
+					return nil
+				}
+			}
+
 			if data.Driver == "" {
 				data.Driver = cfg.Driver
 			}
@@ -147,7 +184,7 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 
 			logger.Debugf("connect cfg: %v", connectCfg)
 
-			session, err := connect(conn.Context(), connectCfg)
+			session, err := connect(connectCfg)
 			if err != nil {
 				logger.Errorf("[ID: %s] failed to connect: %s", conn.ID(), err)
 
@@ -168,19 +205,20 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 				return nil
 			}
 
-			go runTerminalBridge(conn, session)
-
+			sessionID := sessions.Register(session)
 			conn.Set("session", session)
+			conn.Set("terminal_session_id", sessionID)
 
 			msg := &message.Message{}
 			msg.SetType(message.TypeConnect)
-			// msg.SetOutput(buf[:n])
+			msg.SetConnect(&message.Connect{SessionID: sessionID})
 			if err := msg.Serialize(); err != nil {
 				logger.Errorf("ID: %s] failed to serialize message: %s", conn.ID(), err)
 				return nil
 			}
 
 			conn.WriteBinaryMessage(msg.Msg())
+			sessions.AttachWriter(sessionID, conn)
 		case message.TypeKey:
 			v := conn.Get("session")
 			if v == nil {
@@ -190,7 +228,16 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 			}
 			session := v.(terminal.Terminal)
 
-			session.Write(msg.Key())
+			if _, err := session.Write(msg.Key()); err != nil {
+				logger.Errorf("[ID: %s] session write: %s", conn.ID(), err)
+				conn.Close()
+				return nil
+			}
+			if sid := conn.Get("terminal_session_id"); sid != nil {
+				if id, ok := sid.(string); ok {
+					sessions.RecordKeyTail(id, msg.Key())
+				}
+			}
 		case message.TypeResize:
 			v := conn.Get("session")
 			if v == nil {
@@ -211,7 +258,10 @@ func Serve(cfg *Config) (server websocket.Server, err error) {
 		}
 
 		return nil
-	})
+	}
+
+	server.OnTextMessage(handleTerminalText)
+	server.OnBinaryMessage(handleTerminalText)
 
 	return
 }

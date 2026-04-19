@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-zoox/zoox"
 	"github.com/go-zoox/zoox/defaults"
@@ -31,6 +32,10 @@ type HTTPServerConfig struct {
 	IsHistoryDisabled bool
 	//
 	ReadOnly bool
+	//
+	// SessionIdleRetention is how long a PTY session remains after the WebSocket
+	// disconnects before idle eviction. Zero selects the default in Serve (60 seconds).
+	SessionIdleRetention time.Duration
 }
 
 type httpServer struct {
@@ -58,16 +63,17 @@ func (s *httpServer) Run() error {
 
 	app.Use(Middleware(MiddlewareOptions{
 		Config: &Config{
-			Shell:             cfg.Shell,
-			User:              cfg.User,
-			Driver:            cfg.Driver,
-			DriverImage:       cfg.DriverImage,
-			InitCommand:       cfg.InitCommand,
-			WorkDir:           cfg.WorkDir,
-			Username:          cfg.Username,
-			Password:          cfg.Password,
-			IsHistoryDisabled: cfg.IsHistoryDisabled,
-			ReadOnly:          cfg.ReadOnly,
+			Shell:                cfg.Shell,
+			User:                 cfg.User,
+			Driver:               cfg.Driver,
+			DriverImage:          cfg.DriverImage,
+			InitCommand:          cfg.InitCommand,
+			WorkDir:              cfg.WorkDir,
+			Username:             cfg.Username,
+			Password:             cfg.Password,
+			IsHistoryDisabled:    cfg.IsHistoryDisabled,
+			ReadOnly:             cfg.ReadOnly,
+			SessionIdleRetention: cfg.SessionIdleRetention,
 		},
 		PagePath: "/",
 		WSPath:   cfg.Path,

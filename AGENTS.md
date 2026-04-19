@@ -1,0 +1,32 @@
+# Agent notes — `go-zoox/terminal`
+
+Operational context for anyone changing the WebSocket PTY server, reconnect flow, or session lifecycle.
+
+## Command engine context must not be the WebSocket context
+
+`command.New` wires `cfg.Context` to engine teardown. The WebSocket request context is cancelled as soon as the browser disconnects. If you pass `conn.Context()` (or any WS-bound context), the engine cancels immediately, the PTY dies, and **reconnect by `session_id` cannot work**. Use a **detached** context (this codebase uses `context.Background()`); teardown is **`terminal.Terminal.Close`**, the output pump exiting, and **session registry idle eviction**.
+
+## Session registry and reconnect
+
+- New PTYs are registered with an id; the Connect ack carries `session_id` for the client to store.
+- **Reconnect:** client sends `TypeConnect` with the same `session_id`. Server looks up the entry, sends Connect ack, **replays buffered PTY output** (and optional key tail), then **`AttachWriter`** so a single pump keeps reading the PTY and writes to the **current** WebSocket.
+- **Idle TTL:** when the WebSocket is gone, `noteDisconnected` sets a deadline (`SessionRegistryConfig.TTL`). Reconnect clears it. If the deadline passes without reconnect, the entry is evicted: log → close attached socket → **`session.Close()`** → log.
+- **Sweep** runs on an interval; **`LookupSession` / `Get`** also evict lazily if the deadline has passed (same teardown helper as sweep).
+- Default idle retention in **`Serve`** is **60s** when `Config.SessionIdleRetention` is zero; the **`server`** CLI exposes **`--session-idle-retention`** (duration string, e.g. `10s`, `5m`) and env **`GO_ZOOX_TERMINAL_SESSION_IDLE_RETENTION`**.
+
+## Why “session closed” could still leave children running (fixed upstream)
+
+`host.Terminal.Close` in **`go-zoox/command`** historically only closed the PTY master FD. **`Process.Kill()` on the shell PID** still leaves **`/bin/sh -c "…"`** children in the same process group alive. Teardown must **signal the process group** (e.g. `syscall.Kill(-pid, SIGKILL)` with fallback). Keep **`command`** at a version that includes that host `Close` behavior (tests live under `command/engine/host/terminal_close_test.go`).
+
+## Transport and pump
+
+- If the pump cannot write to the WebSocket, it clears the writer, calls **`noteDisconnected`**, and **closes the socket** so the client does not stay “connected” with a dead pump.
+- **`TypeKey`** should surface **`session.Write`** errors and **close** the connection when the PTY is gone.
+
+## Verification
+
+```bash
+go test ./...
+```
+
+For reconnect and TTL behavior, prefer exercising **`server`** integration manually or extending **`server`** tests; registry unit tests cover registration, expiry, and writer binding.

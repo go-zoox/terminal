@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/go-zoox/cli"
 	"github.com/go-zoox/terminal/server"
 )
@@ -73,8 +76,18 @@ func RegistryServer(app *cli.MultipleProgram) {
 				Usage:   "Read Only",
 				EnvVars: []string{"GO_ZOOX_TERMINAL_READ_ONLY"},
 			},
+			&cli.StringFlag{
+				Name:    "session-idle-retention",
+				Usage:   "how long to keep the PTY after the WebSocket disconnects before evicting the session (e.g. 60s, 5m, 1h); allows reconnect within this window",
+				EnvVars: []string{"GO_ZOOX_TERMINAL_SESSION_IDLE_RETENTION"},
+				Value:   "60s",
+			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
+			idleRetention, err := time.ParseDuration(ctx.String("session-idle-retention"))
+			if err != nil {
+				return fmt.Errorf("invalid --session-idle-retention: %w", err)
+			}
 			s := server.NewHTTPServer(&server.HTTPServerConfig{
 				Port:     ctx.Int64("port"),
 				Shell:    ctx.String("shell"),
@@ -91,6 +104,8 @@ func RegistryServer(app *cli.MultipleProgram) {
 				IsHistoryDisabled: ctx.Bool("disable-history"),
 				//
 				ReadOnly: ctx.Bool("read-only"),
+				//
+				SessionIdleRetention: idleRetention,
 			})
 
 			return s.Run()

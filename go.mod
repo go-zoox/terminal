@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-zoox/cli v1.4.0
-	github.com/go-zoox/command v1.12.1
+	github.com/go-zoox/command v1.12.2
 	github.com/go-zoox/fs v1.4.1
 	github.com/go-zoox/headers v1.0.8
 	github.com/go-zoox/logger v1.6.3
