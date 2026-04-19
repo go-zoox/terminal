@@ -21,6 +21,9 @@ var xtermAddonAttachJS string
 //go:embed static/xterm/xterm-addon-fit.js
 var xtermAddonFitJS string
 
+//go:embed static/xterm/xterm-addon-webgl.js
+var xtermAddonWebglJS string
+
 func RenderXTerm(data zoox.H) string {
 	jd, err := json.Marshal(data)
 	if err != nil {
@@ -28,7 +31,7 @@ func RenderXTerm(data zoox.H) string {
 	}
 
 	var b strings.Builder
-	b.Grow(len(xtermCSS) + len(xtermJS) + len(xtermAddonAttachJS) + len(xtermAddonFitJS) + 4096)
+	b.Grow(len(xtermCSS) + len(xtermJS) + len(xtermAddonAttachJS) + len(xtermAddonFitJS) + len(xtermAddonWebglJS) + 4096)
 
 	b.WriteString(`<!doctype html>
 <html lang="en">
@@ -72,6 +75,14 @@ func RenderXTerm(data zoox.H) string {
 				height: 100%;
 				min-height: 0;
 			}
+
+			/* xterm scrollback lives in .xterm-viewport (overflow scroll), not the page.
+			   Hint vertical pan + momentum so touch doesn't fight body; isolate overscroll. */
+			#terminal .xterm-viewport {
+				-webkit-overflow-scrolling: touch;
+				touch-action: pan-y;
+				overscroll-behavior: contain;
+			}
 		</style>
 	</head>
 	<body>
@@ -84,6 +95,9 @@ func RenderXTerm(data zoox.H) string {
 	b.WriteString(`</script>
 		<script>`)
 	b.WriteString(xtermAddonFitJS)
+	b.WriteString(`</script>
+		<script>`)
+	b.WriteString(xtermAddonWebglJS)
 	b.WriteString(`</script>
 		<script>
 			var messageType = {
@@ -110,6 +124,13 @@ func RenderXTerm(data zoox.H) string {
 				fontWeight: 400,
 				fontSize: narrow ? 12 : 14,
 			});
+			if (typeof WebglAddon !== "undefined") {
+				try {
+					term.loadAddon(new WebglAddon());
+				} catch (err) {
+					console.warn("xterm WebGL addon failed, using canvas renderer", err);
+				}
+			}
 			var fitAddon = new FitAddon.FitAddon();
 			term.loadAddon(fitAddon);
 
@@ -157,21 +178,30 @@ func RenderXTerm(data zoox.H) string {
 				ws.send(messageType.Key + data);
 			})
 
+			var refitRaf = 0;
 			function refitTerminal() {
 				try {
 					fitAddon.fit();
 				} catch (e) {}
 			}
+			function scheduleRefitTerminal() {
+				if (refitRaf) {
+					return;
+				}
+				refitRaf = requestAnimationFrame(function () {
+					refitRaf = 0;
+					refitTerminal();
+				});
+			}
 
-			window.addEventListener("resize", refitTerminal, false);
+			window.addEventListener("resize", scheduleRefitTerminal, false);
 			window.addEventListener("orientationchange", function () {
-				setTimeout(refitTerminal, 100);
-				setTimeout(refitTerminal, 350);
+				setTimeout(scheduleRefitTerminal, 100);
+				setTimeout(scheduleRefitTerminal, 350);
 			}, false);
 
 			if (window.visualViewport) {
-				window.visualViewport.addEventListener("resize", refitTerminal);
-				window.visualViewport.addEventListener("scroll", refitTerminal);
+				window.visualViewport.addEventListener("resize", scheduleRefitTerminal);
 			}
 
 		</script>
