@@ -18,6 +18,7 @@ func RenderXTerm(data zoox.H) string {
 	<html>
 		<head>
 			<title>Web Terminal</title>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"></meta>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
 			<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
 			<script src="https://cdn.jsdelivr.net/npm/xterm-addon-attach"></script>
