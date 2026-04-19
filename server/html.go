@@ -21,9 +21,6 @@ var xtermAddonAttachJS string
 //go:embed static/xterm/xterm-addon-fit.js
 var xtermAddonFitJS string
 
-//go:embed static/xterm/xterm-addon-webgl.js
-var xtermAddonWebglJS string
-
 func RenderXTerm(data zoox.H) string {
 	jd, err := json.Marshal(data)
 	if err != nil {
@@ -31,7 +28,7 @@ func RenderXTerm(data zoox.H) string {
 	}
 
 	var b strings.Builder
-	b.Grow(len(xtermCSS) + len(xtermJS) + len(xtermAddonAttachJS) + len(xtermAddonFitJS) + len(xtermAddonWebglJS) + 4096)
+	b.Grow(len(xtermCSS) + len(xtermJS) + len(xtermAddonAttachJS) + len(xtermAddonFitJS) + 4096)
 
 	b.WriteString(`<!doctype html>
 <html lang="en">
@@ -58,9 +55,12 @@ func RenderXTerm(data zoox.H) string {
 			}
 
 			body {
+				display: flex;
+				flex-direction: column;
 				height: 100%;
 				min-height: 100vh;
 				min-height: 100dvh;
+				min-height: 100svh;
 				margin: 0;
 				padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 				background-color: #000;
@@ -70,10 +70,13 @@ func RenderXTerm(data zoox.H) string {
 				-webkit-tap-highlight-color: transparent;
 			}
 
+			/* flex + min-height:0 avoids 0-height xterm under narrow viewports / DevTools device mode */
 			#terminal {
-				width: 100%;
-				height: 100%;
+				flex: 1 1 auto;
 				min-height: 0;
+				width: 100%;
+				height: auto;
+				position: relative;
 			}
 
 			/* xterm scrollback lives in .xterm-viewport (overflow scroll), not the page.
@@ -163,9 +166,6 @@ func RenderXTerm(data zoox.H) string {
 		<script>`)
 	b.WriteString(xtermAddonFitJS)
 	b.WriteString(`</script>
-		<script>`)
-	b.WriteString(xtermAddonWebglJS)
-	b.WriteString(`</script>
 		<script>
 			var messageType = {
 				Connect: '0',
@@ -204,22 +204,48 @@ func RenderXTerm(data zoox.H) string {
 			var narrow = typeof matchMedia !== "undefined" && matchMedia("(max-width: 480px)").matches;
 			var coarsePointer = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
 			var scrollBottomOnFocus = narrow || coarsePointer;
-			/* Same heuristic as touch-friendly terminal: show disconnect overlay only here */
-			var isMobileClient = scrollBottomOnFocus;
+			/* Disconnect overlay: evaluate at use time so DevTools device mode after load still works.
+			   PC Chrome emulation often keeps pointer:fine; use max-width 768 + hover:none for touch UIs. */
+			function useMobileDisconnectOverlay() {
+				if (typeof matchMedia === "undefined") {
+					return false;
+				}
+				if (matchMedia("(max-width: 768px)").matches) {
+					return true;
+				}
+				if (matchMedia("(pointer: coarse)").matches) {
+					return true;
+				}
+				if (matchMedia("(hover: none)").matches) {
+					return true;
+				}
+				return false;
+			}
+			/* Canvas renderer only: WebGL xterm often shows a blank/black screen under Chrome
+			   device emulation and on many mobile GPUs. */
 			var term = new Terminal({
 				fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 				fontWeight: 400,
 				fontSize: narrow ? 12 : 14,
 			});
-			if (typeof WebglAddon !== "undefined") {
-				try {
-					term.loadAddon(new WebglAddon.WebglAddon());
-				} catch (err) {
-					console.warn("xterm WebGL addon failed, using canvas renderer", err);
-				}
-			}
 			var fitAddon = new FitAddon.FitAddon();
 			term.loadAddon(fitAddon);
+
+			function scheduleFitAfterLayout() {
+				if (!term.element) {
+					return;
+				}
+				function runFit() {
+					try {
+						fitAddon.fit();
+					} catch (e) {}
+				}
+				runFit();
+				requestAnimationFrame(runFit);
+				setTimeout(runFit, 50);
+				setTimeout(runFit, 200);
+				setTimeout(runFit, 500);
+			}
 
 			function scrollTermToBottomIfMobile() {
 				if (!scrollBottomOnFocus) {
@@ -251,7 +277,7 @@ func RenderXTerm(data zoox.H) string {
 			var ws = null;
 
 			function showMobileDisconnectModal() {
-				if (!isMobileClient) {
+				if (!useMobileDisconnectOverlay()) {
 					return;
 				}
 				var el = document.getElementById('disconnect-modal');
@@ -313,7 +339,7 @@ func RenderXTerm(data zoox.H) string {
 					if (!term.element) {
 						term.open(document.getElementById('terminal'));
 						handshakeComplete = true;
-						fitAddon.fit();
+						scheduleFitAfterLayout();
 
 						if (scrollBottomOnFocus && term.textarea) {
 							term.textarea.addEventListener("focus", function () {
@@ -327,7 +353,7 @@ func RenderXTerm(data zoox.H) string {
 						}
 					} else {
 						handshakeComplete = true;
-						fitAddon.fit();
+						scheduleFitAfterLayout();
 					}
 
 					try {
@@ -384,7 +410,7 @@ func RenderXTerm(data zoox.H) string {
 					if (ev && ev.wasClean) {
 						return;
 					}
-					if (isMobileClient) {
+					if (useMobileDisconnectOverlay()) {
 						showMobileDisconnectModal();
 					} else {
 						try {
@@ -407,7 +433,7 @@ func RenderXTerm(data zoox.H) string {
 					return;
 				}
 				btn.addEventListener('click', function () {
-					if (!isMobileClient) {
+					if (!useMobileDisconnectOverlay()) {
 						return;
 					}
 					btn.disabled = true;

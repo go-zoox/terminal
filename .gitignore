@@ -2,3 +2,6 @@ tmp/
 terminal
 main
 !cmd/terminal
+
+# Compound Engineering — keep machine-local YAML out of git (example file stays tracked)
+.compound-engineering/*.local.yaml

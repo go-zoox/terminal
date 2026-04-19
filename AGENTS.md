@@ -25,7 +25,9 @@ Operational context for anyone changing the WebSocket PTY server, reconnect flow
 
 ## Embedded terminal page (`server/html.go`)
 
-- **Mobile-only disconnect UI:** when `(max-width: 480px)` or `(pointer: coarse)` matches the same heuristic as touch scroll behavior, an **unclean** WebSocket close shows a **modal** (Chinese copy) with **「重新连接」** instead of only printing “Connection Closed” in the terminal. Desktop keeps the inline terminal message only.
+- **Rendering:** use xterm’s **default canvas** renderer only — **do not** load `xterm-addon-webgl` in this page. WebGL often produces a **blank/black** terminal under **Chrome device emulation** and on many mobile GPUs.
+- **Layout:** `body` is a **column flex** container and `#terminal` uses **`flex: 1; min-height: 0`** so the fit addon gets a non-zero size on narrow viewports (pure `height: 100%` chains can collapse). After Connect, **`scheduleFitAfterLayout()`** runs `fit` immediately, on `rAF`, and at **50/200/500 ms** so DevTools viewport changes settle.
+- **Mobile-style disconnect UI:** on **unclean** WebSocket close, show a **modal** (Chinese copy + **「重新连接」**) when **`useMobileDisconnectOverlay()`** is true at **that moment** (not only at page load): `(max-width: 768px)` **or** `(pointer: coarse)` **or** `(hover: none)`. This matches real phones/tablets and **Chrome DevTools device emulation** (often `pointer: fine` but narrow viewport / `hover: none`). Otherwise only the red “Connection Closed” line in xterm.
 - Reconnect closes the existing socket with code 1000 when needed, then opens a new WebSocket; **`sessionStorage`** still holds `session_id` so the server can restore the PTY when within idle TTL.
 - **Page Visibility:** when `document.visibilityState` becomes **`visible`** and the WebSocket is **`CLOSED`**, the page **automatically** calls `openWebSocket()` (short debounce). Hides the mobile disconnect modal if it was open.
 
