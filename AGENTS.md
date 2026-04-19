@@ -23,6 +23,12 @@ Operational context for anyone changing the WebSocket PTY server, reconnect flow
 - If the pump cannot write to the WebSocket, it clears the writer, calls **`noteDisconnected`**, and **closes the socket** so the client does not stay “connected” with a dead pump.
 - **`TypeKey`** should surface **`session.Write`** errors and **close** the connection when the PTY is gone.
 
+## Embedded terminal page (`server/html.go`)
+
+- **Mobile-only disconnect UI:** when `(max-width: 480px)` or `(pointer: coarse)` matches the same heuristic as touch scroll behavior, an **unclean** WebSocket close shows a **modal** (Chinese copy) with **「重新连接」** instead of only printing “Connection Closed” in the terminal. Desktop keeps the inline terminal message only.
+- Reconnect closes the existing socket with code 1000 when needed, then opens a new WebSocket; **`sessionStorage`** still holds `session_id` so the server can restore the PTY when within idle TTL.
+- **Page Visibility:** when `document.visibilityState` becomes **`visible`** and the WebSocket is **`CLOSED`**, the page **automatically** calls `openWebSocket()` (short debounce). Hides the mobile disconnect modal if it was open.
+
 ## Verification
 
 ```bash
